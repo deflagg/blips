@@ -15,7 +15,7 @@ az stack group create `
     --resource-group $ResourceGroupName `
     --name ${ResourceGroupName}-stack `
     --template-file  $TemplateFile `
-    --action-on-unmanage ignore `
+    --action-on-unmanage detachAll `
     --deny-settings-mode None `
     --description 'Core infrastructure deployment.'
 #    --parameters     @$ParametersFile

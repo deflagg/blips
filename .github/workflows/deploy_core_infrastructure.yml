@@ -27,8 +27,8 @@ jobs:
     - name: Run deploy.ps1
       uses: azure/powershell@v2
       with:
-        azPSVersion: "latest"                     # Az module already pre-installed
+        azPSVersion: "latest"
         inlineScript: |
-          ./deploy.ps1                            # path is repo-root
+          ./deploy.ps1
         errorActionPreference: Stop
         failOnStandardError: true      

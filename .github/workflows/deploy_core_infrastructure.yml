@@ -9,27 +9,26 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  # This workflow contains a single job called "deploy"
+  deploy:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Deploy
-        uses: Azure/powershell@v2
-        with:
-          run: powershell ../../deploy.ps1
+    # (Optional) Sign-in so Az cmdlets inside deploy.ps1 can touch Azure
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}   # service-principal JSON
+        enable-AzPSSession: true                  # keeps the session for the next step :contentReference[oaicite:0]{index=0}
 
-          # Azure PS version to be used to execute the script, example: 1.8.0, 2.8.0, 3.4.0. To use the latest version, specify "latest".
-          azPSVersion: latest
-          # Select the value of the ErrorActionPreference variable for executing the script. Options: stop, continue, silentlyContinue. Default is Stop.
-          errorActionPreference: Stop
-          # If this is true, this task will fail if any errors are written to the error pipeline, or if any data is written to the Standard Error stream.
-          failOnStandardError: false
-          # Used to pull Az module from Azure/az-ps-module-versions.  Since there's a default, this is typically not supplied by the user.
-          githubToken: ${{ github.token }}
-          
+    # Run the script
+    - name: Run deploy.ps1
+      uses: azure/powershell@v2
+      with:
+        azPSVersion: "latest"                     # Az module already pre-installed
+        inlineScript: |
+          ./deploy.ps1                            # path is repo-root
+        errorActionPreference: Stop
+        failOnStandardError: true      

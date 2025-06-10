@@ -5,30 +5,11 @@ param projectName string = 'sysdesign'
 @description('Location for all resources')
 param location string = resourceGroup().location
 
-@description('Specifies the name of the Container Registry.')
-param containerRegistryName string = 'acr${projectName}'
-
-@description('Specifies the SKU for the Container Registry.')
-@allowed([
-  'Basic'
-  'Standard'
-  'Premium'
-])
-param containerRegistrySku string = 'Basic'
+@description('ID of an existing Azure Container Registry to attach to AKS.')
+param containerRegistryId string
 
 @description('Resource ID of the subnet where agent nodes live.')
 param vnetSubnetId string
-
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
-  name: containerRegistryName
-  location: location
-  sku: {
-    name: containerRegistrySku
-  }
-  properties: {
-    adminUserEnabled: false
-  }
-}
 
 resource aksClusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
   name: 'aks-sysdesign-identity'
@@ -119,8 +100,14 @@ resource resourceGroupReaderRoleAssignment 'Microsoft.Authorization/roleAssignme
   }
 }
 
+// Turn the ID into a typed stub so the compiler knows about it
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
+  name: last(split(containerRegistryId, '/'))
+}
+
+
 resource acrName_acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, containerRegistry.id, 'acrPull')
+  name: guid(resourceGroup().id, containerRegistryId, 'acrPull')
   scope: containerRegistry
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
@@ -130,6 +117,6 @@ resource acrName_acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@
 }
 
 
-output containerRegistryId string = containerRegistry.id
+output containerRegistryId string = containerRegistryId
 output aksClusterId string = aksCluster.id
 output aksClusterResource object = aksCluster

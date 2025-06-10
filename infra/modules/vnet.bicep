@@ -33,6 +33,25 @@ resource nsgApim 'Microsoft.Network/networkSecurityGroups@2024-03-01' = {
   }
 }
 
+// ✱ NEW subnet (next free /24 in 10.0.x.0/24)
+//    – delegated to Microsoft.Web/serverFarms
+//    – no route-table or NSG required
+resource appSvcIntegrationSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-03-01' = {
+  name: 'appsvc-integration'
+  parent: vnet
+  properties: {
+    addressPrefix: '10.0.4.0/24'
+    delegations: [
+      {
+        name: 'webDelegation'
+        properties: {
+          serviceName: 'Microsoft.Web/serverFarms'
+        }
+      }
+    ]
+  }
+}
+
 resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
   name: vnetName
   location: location
@@ -81,3 +100,4 @@ output vnetId              string = vnet.id
 output defaultSubnetId     string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'default-subnet')
 output appGatewaySubnetId  string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'appgateway-subnet')
 output apimSubnetId         string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'apim-subnet')
+output appSvcIntegrationSubnetId string = appSvcIntegrationSubnet.id

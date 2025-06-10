@@ -1,6 +1,6 @@
 param(
     [string]$ResourceGroupName = "sysdesign",
-    [string]$Location          = "eastus",
+    [string]$Location          = "eastus2",
     [string]$TemplateFile      = "main.bicep",
     [string]$ParametersFile    = "main.parameters.json"
 )

@@ -20,8 +20,8 @@ jobs:
     - name: Azure login
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}   # service-principal JSON
-        enable-AzPSSession: true                  # keeps the session for the next step :contentReference[oaicite:0]{index=0}
+        creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
+        enable-AzPSSession: true
 
     # Run the script
     - name: Run deploy.ps1
@@ -29,6 +29,6 @@ jobs:
       with:
         azPSVersion: "latest"
         inlineScript: |
-          ./deploy.ps1
+          ./infra/deploy.ps1
         errorActionPreference: Stop
         failOnStandardError: true      

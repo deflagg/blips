@@ -1,0 +1,41 @@
+name: Build & Deploy React App
+on:
+  push:
+    branches: [main]      # or whichever branch triggers production
+permissions:
+  id-token: write         # for OIDC login (no secrets to rotate)
+  contents: read
+
+env:
+  RESOURCE_GROUP:  sysdesign
+  APP_NAME:        react-web-${{ vars.UNIQUE }}   # keep in sync with Bicep
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18    # matches `linuxFxVersion`
+
+      - name: Install deps & build
+        run: |
+          npm ci
+          npm run build              # creates ./build
+          cd build && zip -r ../site.zip .
+
+      # -------- Login to Azure using OIDC --------
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
+          enable-AzPSSession: true
+
+      # -------- Deploy the ZIP package --------
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name:    ${{ env.APP_NAME }}
+          package:     site.zip

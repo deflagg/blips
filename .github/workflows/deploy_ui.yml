@@ -18,6 +18,7 @@ jobs:
   # This workflow contains a single job called "deploy"
   deploy:
     runs-on: ubuntu-latest
+    environment: Development
     env:
       AZ_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 

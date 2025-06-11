@@ -14,7 +14,7 @@ Write-Host "`n➤ Deploying infrastructure stack via $TemplateFile ..."
 az stack group create `
     --resource-group $ResourceGroupName `
     --name ${ResourceGroupName}-stack `
-    --template-file  $TemplateFile `
+    --template-file  .\${TemplateFile} `
     --action-on-unmanage detachAll `
     --deny-settings-mode None `
     --description 'Core infrastructure deployment.'

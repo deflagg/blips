@@ -2,10 +2,14 @@
 az account set --subscription $env:AZ_SUBSCRIPTION_ID
 
 # Log in to your Azure Container Registry
-az acr login --name acrsysdesign
+az acr login --name acrsysdesign --expose-token
+
+#print current directory
+Write-Host "`n➤ Building and pushing Docker image to Azure Container Registry ..."
+
 
 # Build the Docker image
-docker build -f ./Dockerfile -t acrsysdesign.azurecr.io/blips-ui:latest --progress=plain .
+docker build -f ./ui/Dockerfile -t acrsysdesign.azurecr.io/blips-ui:latest --progress=plain .
 
 
 # List the images to verify the build

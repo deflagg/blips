@@ -26,8 +26,8 @@ jobs:
 
     - name: List files in the repository
       run: |
-        echo "Files in the repository:"
-        ls -la
+        echo "Current Directlry asdfdasfdasf:"
+        pwd
 
     # (Optional) Sign-in so Az cmdlets inside deploy.ps1 can touch Azure
     - name: Azure login

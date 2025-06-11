@@ -4,6 +4,9 @@ az acr login --name acrsysdesign
 # Build the Docker image
 docker build -t acrsysdesign.azurecr.io/blips-ui:latest .
 
+# List the images to verify the build
+docker images
+
 # Push the image to ACR
 docker push acrsysdesign.azurecr.io/blips-ui:latest
 

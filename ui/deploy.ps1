@@ -1,4 +1,3 @@
-
 # Log in to your Azure Container Registry
 az acr login --name acrsysdesign
 
@@ -11,6 +10,8 @@ docker push acrsysdesign.azurecr.io/blips-ui:latest
 # Get the name of your App Service
 WEB_APP_NAME=$(az deployment group show --resource-group sysdesign --name webAppModule --query properties.outputs.webAppHostname.value -o tsv | cut -d'.' -f1)
 
+# Print the App Service name
+Write-Host "`n➤ App Service Name: $WEB_APP_NAME"
 
 # Configure the App Service to use the container from ACR
 az webapp config container set \

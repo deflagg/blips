@@ -28,9 +28,9 @@ az webapp config container set `
     --docker-custom-image-name acrsysdesign.azurecr.io/blips-ui:latest `
     --docker-registry-server-url https://acrsysdesign.azurecr.io
 
-az webapp config set \
-  --name $WEB_APP_NAME \
-  --resource-group sysdesign \
+az webapp config set `
+  --name $WEB_APP_NAME `
+  --resource-group sysdesign `
   --acr-use-identity 
 
 # Enable managed identity for the App Service to pull from ACR

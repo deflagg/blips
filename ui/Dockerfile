@@ -9,6 +9,7 @@ WORKDIR /app
 
 # 1  Copy manifests and install ALL deps (prod + dev)
 COPY package*.json ./
+RUN ls -la
 RUN npm ci                                # ← NO --omit=dev here
 
 # 2  Copy source and build with Vite

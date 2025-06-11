@@ -1,3 +1,6 @@
+# Set your subscription
+az account set --subscription $env:AZ_SUBSCRIPTION_ID
+
 # Log in to your Azure Container Registry
 az acr login --name acrsysdesign
 

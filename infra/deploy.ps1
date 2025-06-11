@@ -1,9 +1,11 @@
 param(
     [string]$ResourceGroupName = "sysdesign",
-    [string]$Location          = "eastus2",
-    [string]$TemplateFile      = "main.bicep",
-    [string]$ParametersFile    = "main.parameters.json"
+    [string]$Location          = "eastus2"
 )
+
+$TemplateFile   = Join-Path $PSScriptRoot 'main.bicep'
+$ParametersFile = Join-Path $PSScriptRoot 'main.parameters.json'
+
 
 Write-Host "`n➤ Creating resource group $ResourceGroupName in $Location ..."
 az group create `
@@ -14,7 +16,7 @@ Write-Host "`n➤ Deploying infrastructure stack via $TemplateFile ..."
 az stack group create `
     --resource-group $ResourceGroupName `
     --name ${ResourceGroupName}-stack `
-    --template-file  .\${TemplateFile} `
+    --template-file  $TemplateFile `
     --action-on-unmanage detachAll `
     --deny-settings-mode None `
     --description 'Core infrastructure deployment.'

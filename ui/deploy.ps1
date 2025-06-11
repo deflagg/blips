@@ -2,7 +2,7 @@
 az account set --subscription $env:AZ_SUBSCRIPTION_ID
 
 # Log in to your Azure Container Registry
-az acr login --name acrsysdesign --expose-token
+az acr login --name acrsysdesign
 
 #print current directory
 Write-Host "`n➤ Building and pushing Docker image to Azure Container Registry ..."

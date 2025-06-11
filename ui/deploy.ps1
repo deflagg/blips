@@ -5,7 +5,7 @@ az account set --subscription $env:AZ_SUBSCRIPTION_ID
 az acr login --name acrsysdesign
 
 # Build the Docker image
-docker build -t acrsysdesign.azurecr.io/blips-ui:latest --verbose .
+docker build ./Dockerfile -t acrsysdesign.azurecr.io/blips-ui:latest --verbose .
 
 # List the images to verify the build
 docker images

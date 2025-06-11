@@ -24,6 +24,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: List files in the repository
+      run: |
+        echo "Files in the repository:"
+        ls -la
+
     # (Optional) Sign-in so Az cmdlets inside deploy.ps1 can touch Azure
     - name: Azure login
       uses: azure/login@v2

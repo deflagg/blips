@@ -21,17 +21,17 @@ docker push acrsysdesign.azurecr.io/blips-ui:latest
 # Get the name of your App Service
 $WEB_APP_NAME = (az deployment group show --resource-group sysdesign --name webAppModule --query "properties.outputs.webAppHostname.value" -o tsv).Split('.')[0]
 
-# Configure the App Service to use the container from ACR
-az webapp config container set `
-    --name $WEB_APP_NAME `
-    --resource-group sysdesign `
-    --docker-custom-image-name acrsysdesign.azurecr.io/blips-ui:latest `
-    --docker-registry-server-url https://acrsysdesign.azurecr.io
-
 az webapp config set `
   --name $WEB_APP_NAME `
   --resource-group sysdesign `
   --acr-use-identity 
+
+# Configure the App Service to use the container from ACR
+az webapp config container set `
+    --name $WEB_APP_NAME `
+    --resource-group sysdesign `
+    --container-image-name acrsysdesign.azurecr.io/blips-ui:latest `
+    --container-registry-url https://acrsysdesign.azurecr.io
 
 # Enable managed identity for the App Service to pull from ACR
 az webapp identity assign --resource-group sysdesign --name $WEB_APP_NAME --scope "/subscriptions/$env:AZ_SUBSCRIPTION_ID/resourceGroups/sysdesign/providers/Microsoft.ContainerRegistry/registries/acrsysdesign" --role "AcrPull"

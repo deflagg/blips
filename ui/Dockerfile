@@ -5,23 +5,10 @@
 ############################################
 FROM node:20.18.2-alpine AS build 
 
-RUN echo "***********DEBUG: Dockerfile build started at $(date)***********"
-
-
-RUN echo "***********DEBUG: Current working directory is $(pwd)***********"
-RUN ls -la
-
 WORKDIR /app
-
-RUN echo "***********DEBUG: Current working directory is $(pwd)***********"
-RUN ls -la
 
 # 1  Copy manifests and install ALL deps (prod + dev)
 COPY package*.json ./
-
-RUN echo "***********DEBUG: Current working directory after copying package files is $(pwd)***********"
-RUN ls -la
-
 RUN npm ci                                # ← NO --omit=dev here
 
 # 2  Copy source and build with Vite

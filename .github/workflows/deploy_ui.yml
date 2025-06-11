@@ -27,7 +27,7 @@ jobs:
 
     # (Optional) Sign-in so Az cmdlets inside deploy.ps1 can touch Azure
     - name: Azure login
-      uses: azure/login@v2
+      uses: azure/login@v1
       with:
         client-id:        ${{ secrets.AZURE_GITHUB_ACTIONS_CLIENT_ID }}
         tenant-id:        ${{ secrets.AZURE_TENANT_ID }}

@@ -1,10 +1,3 @@
-# Log in to Azure
-az login
-
-SUBSCRIPTION_ID="400acf99-3ce6-4ee6-8bf7-9b209093ac5f"
-
-# Set your subscription
-az account set --subscription $SUBSCRIPTION_ID
 
 # Log in to your Azure Container Registry
 az acr login --name acrsysdesign
@@ -27,7 +20,7 @@ az webapp config container set \
     --docker-registry-server-url https://acrsysdesign.azurecr.io
 
 # Enable managed identity for the App Service to pull from ACR
-az webapp identity assign --resource-group sysdesign --name $WEB_APP_NAME --scope /subscriptions/$SUBSCRIPTION_ID/resourceGroups/sysdesign/providers/Microsoft.ContainerRegistry/registries/acrsysdesign --role "AcrPull"
+az webapp identity assign --resource-group sysdesign --name $WEB_APP_NAME --scope /subscriptions/$env:AZ_SUBSCRIPTION_ID/resourceGroups/sysdesign/providers/Microsoft.ContainerRegistry/registries/acrsysdesign --role "AcrPull"
 
 # Enable continuous deployment (optional)
 # This will automatically redeploy the app when you push a new image

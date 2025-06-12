@@ -1,0 +1,6 @@
+@blipfeed_HostAddress = http://localhost:5089
+
+GET {{blipfeed_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,47 @@
+# --- User-defined variables ---
+$acrName = "your_acr_name"
+$imageName = "blipfeed"
+$imageTag = "latest"
+# ------------------------------
+
+set-location -path "./services/$($imageName)"
+
+# Derived variables
+$acrLoginServer = "$($acrName).azurecr.io"
+$fullImageName = "$($acrLoginServer)/$($imageName):$($imageTag)"
+
+# 1. Login to Azure Container Registry
+write-host "Logging in to ACR: $($acrLoginServer)..."
+az acr login --name $acrName
+if ($LASTEXITCODE -ne 0) {
+    write-error "Failed to login to ACR. Please check your credentials and ACR name." -f Red
+    exit 1
+}
+write-host "ACR login successful." -f Green
+
+# 2. Build the Docker image
+write-host "Building Docker image: $($imageName):$($imageTag)..."
+docker build -t "$($imageName):$($imageTag)" ./
+if ($LASTEXITCODE -ne 0) {
+    write-error "Docker build failed." -f Red
+    exit 1
+}
+write-host "Docker image built successfully." -f Green
+
+# 3. Tag the Docker image for ACR
+write-host "Tagging image for ACR: $($fullImageName)..."
+docker tag "$($imageName):$($imageTag)" $fullImageName
+if ($LASTEXITCODE -ne 0) {
+    write-error "Failed to tag Docker image." -f Red
+    exit 1
+}
+write-host "Image tagged successfully." -f Green
+
+# 4. Push the image to ACR
+write-host "Pushing image to ACR: $($fullImageName)..."
+docker push $fullImageName
+if ($LASTEXITCODE -ne 0) {
+    write-error "Failed to push image to ACR." -f Red
+    exit 1
+}
+write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green

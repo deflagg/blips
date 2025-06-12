@@ -46,4 +46,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green
 
+az aks install-cli
+az aks get-credentials --resource-group sysdesign --name sysdesign-aks
+
 helm install blipfeed -n blipfeed --create-namespace ./helm

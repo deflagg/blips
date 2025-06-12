@@ -50,3 +50,8 @@ az aks install-cli
 az aks get-credentials --resource-group sysdesign --name sysdesign-aks
 
 helm install blipfeed -n blipfeed --create-namespace ./helm
+
+if ($LASTEXITCODE -ne 0) {
+    write-error "Failed to install Helm chart."
+    exit 1
+}

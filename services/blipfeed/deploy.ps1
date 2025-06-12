@@ -1,5 +1,5 @@
 # --- User-defined variables ---
-$acrName = "your_acr_name"
+$acrName = "acrsysdesign"
 $imageName = "blipfeed"
 $imageTag = "latest"
 # ------------------------------

@@ -47,7 +47,12 @@ if ($LASTEXITCODE -ne 0) {
 write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green
 
 az aks install-cli
-az aks get-credentials --resource-group sysdesign --name sysdesign-aks
+az aks get-credentials --resource-group sysdesign --name aks-sysdesign
+
+if ($LASTEXITCODE -ne 0) {
+    write-error "Failed to get AKS credentials. Please check your resource group and AKS cluster name."
+    exit 1
+}
 
 helm install blipfeed -n blipfeed --create-namespace ./helm
 

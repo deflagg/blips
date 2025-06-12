@@ -14,7 +14,7 @@ $fullImageName = "$($acrLoginServer)/$($imageName):$($imageTag)"
 write-host "Logging in to ACR: $($acrLoginServer)..."
 az acr login --name $acrName
 if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to login to ACR. Please check your credentials and ACR name." -f Red
+    write-error "Failed to login to ACR. Please check your credentials and ACR name."
     exit 1
 }
 write-host "ACR login successful." -f Green
@@ -23,7 +23,7 @@ write-host "ACR login successful." -f Green
 write-host "Building Docker image: $($imageName):$($imageTag)..."
 docker build -t "$($imageName):$($imageTag)" ./
 if ($LASTEXITCODE -ne 0) {
-    write-error "Docker build failed." -f Red
+    write-error "Docker build failed."
     exit 1
 }
 write-host "Docker image built successfully." -f Green
@@ -32,7 +32,7 @@ write-host "Docker image built successfully." -f Green
 write-host "Tagging image for ACR: $($fullImageName)..."
 docker tag "$($imageName):$($imageTag)" $fullImageName
 if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to tag Docker image." -f Red
+    write-error "Failed to tag Docker image."
     exit 1
 }
 write-host "Image tagged successfully." -f Green
@@ -41,7 +41,7 @@ write-host "Image tagged successfully." -f Green
 write-host "Pushing image to ACR: $($fullImageName)..."
 docker push $fullImageName
 if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to push image to ACR." -f Red
+    write-error "Failed to push image to ACR."
     exit 1
 }
 write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green

@@ -66,57 +66,56 @@ module acrModule './modules/acr.bicep' = {
 }
 
 
-// // --------------------------------------------------
-// // App Gateway
-// // --------------------------------------------------
-// module appGwModule './modules/agw.bicep' = {
-//   name: 'appGwDeployment'
-//   params: {
-//     projectName           : projectName
-//     applicationGatewayName: applicationGatewayName
-//     vnetName              : vnetName
-//     location              : location
-//   }
-//   dependsOn: [
-//     vnetModule  //  Remember I uncommented this.
-//   ]
-// }
+// --------------------------------------------------
+// App Gateway
+// --------------------------------------------------
+module appGwModule './modules/agw.bicep' = {
+  name: 'appGwDeployment'
+  params: {
+    projectName           : projectName
+    applicationGatewayName: applicationGatewayName
+    vnetName              : vnetName
+    location              : location
+  }
+  dependsOn: [
+    vnetModule  //  Remember I uncommented this.
+  ]
+}
 
-// // --------------------------------------------------
-// // AKS
-// // --------------------------------------------------
-// module aksModule './modules/aks.bicep' = {
-//   name: 'aksDeployment'
-//   params: {
-//     projectName            : projectName
-//     location               : location
-//     containerRegistryName  : containerRegistryName
-//     containerRegistrySku   : containerRegistrySku
-//     vnetSubnetId           : vnetModule.outputs.defaultSubnetId
-//     applicationGatewayId   : appGwModule.outputs.applicationGatewayId
-//     aksClusterName         : aksClusterName
-//     dnsPrefix              : dnsPrefix
-//   }
-// }
+// --------------------------------------------------
+// AKS
+// --------------------------------------------------
+module aksModule './modules/aks.bicep' = {
+  name: 'aksDeployment'
+  params: {
+    projectName            : projectName
+    location               : location
+    containerRegistryId    : acrModule.outputs.containerRegistryId
+    vnetSubnetId           : vnetModule.outputs.defaultSubnetId
+    applicationGatewayId   : appGwModule.outputs.applicationGatewayId
+    aksClusterName         : aksClusterName
+    dnsPrefix              : dnsPrefix
+  }
+}
 
-// // APIM sits in front of the App Gateway created by the AKS module.
-// module apimModule './modules/apim.bicep' = {
-//   name: 'apimDeployment'
-//   params: {
-//     apimName        : apimName
-//     location        : location
-//     publisherEmail  : publisherEmail
-//     publisherName   : publisherName
-//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
-//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
-//     subnetName      : apimSubnetName
-//     // Forward traffic from APIM to the App Gateway listener
-//     appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
-//   }
-//   dependsOn: [
-//     appGwModule // ensure App Gateway exists before APIM backend registration
-//   ]
-// }
+// APIM sits in front of the App Gateway created by the AKS module.
+module apimModule './modules/apim.bicep' = {
+  name: 'apimDeployment'
+  params: {
+    apimName        : apimName
+    location        : location
+    publisherEmail  : publisherEmail
+    publisherName   : publisherName
+    // VNet containing both AKS & App Gateway (resource already created by aksModule)
+    vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
+    subnetName      : apimSubnetName
+    // Forward traffic from APIM to the App Gateway listener
+    appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
+  }
+  dependsOn: [
+    appGwModule // ensure App Gateway exists before APIM backend registration
+  ]
+}
 
 // --------------------------------------------------
 // App Service
@@ -136,5 +135,5 @@ module web './modules/appsvc.bicep' = {
 // --------------------------------------------------
 // Outputs
 // --------------------------------------------------
-// output aksClusterId   string = aksModule.outputs.aksClusterId
-// output apimServiceId  string = apimModule.outputs.apimResourceId
+output aksClusterId   string = aksModule.outputs.aksClusterId
+output apimServiceId  string = apimModule.outputs.apimResourceId

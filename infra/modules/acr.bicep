@@ -35,5 +35,5 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-pr
 // --------------------------------------------------
 // Outputs (exposed to parent template)
 // --------------------------------------------------
-output registryId   string = containerRegistry.id
-output registryName string = containerRegistry.name
+output containerRegistryId   string = containerRegistry.id
+output containerRegistryName string = containerRegistry.name

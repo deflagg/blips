@@ -45,3 +45,5 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green
+
+helm install --create-namespace -n blipsfeed ./helm

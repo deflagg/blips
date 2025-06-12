@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("blipfeed")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f9c3c45c9269691d20649a6e775683aab5b78fce")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8409bfb7244c0aabe7924fa76ef93a55fb2248bf")]
 [assembly: System.Reflection.AssemblyProductAttribute("blipfeed")]
 [assembly: System.Reflection.AssemblyTitleAttribute("blipfeed")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

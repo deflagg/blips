@@ -57,6 +57,8 @@ $release   = "blipfeed"
 $namespace = "blipfeed"
 $chartPath = "./helm"
 
+helm uninstall $release -n $namespace -f "$chartPath/values.yaml"
+
 #helm lint "$chartPath"          # catches chart errors
 # Idempotent deploy: upgrades if present, installs if not
 helm upgrade --install $release "$chartPath" `

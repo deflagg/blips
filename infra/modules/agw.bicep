@@ -100,7 +100,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'myHTTPSetting'
         properties: {
-          port: 80
+          port: 8080
           protocol: 'Http'
           cookieBasedAffinity: 'Disabled'
           pickHostNameFromBackendAddress: false

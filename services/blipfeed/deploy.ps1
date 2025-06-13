@@ -47,6 +47,10 @@ if ($LASTEXITCODE -ne 0) {
 write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green
 
 az aks install-cli
+
+# add kubectl to PATH 
+$env:PATH += ";/usr/local/bin"
+
 az aks get-credentials --resource-group sysdesign --name aks-sysdesign
 
 if ($LASTEXITCODE -ne 0) {

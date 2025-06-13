@@ -124,7 +124,7 @@ resource applicationGatewayAgicReaderRoleAssignment1  'Microsoft.Authorization/r
   }
 }
 
-resource applicationGatewayIdentity 'Microsoft.Network/applicationGateways@2024-05-01' existing = {
+resource applicationGatewayIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: last(split(appGatewayIdentityId, '/'))
 }
 
@@ -153,14 +153,14 @@ resource applicationGatewayAgicContributorRoleAssignment 'Microsoft.Authorizatio
 }
 
 // Turn the ID into a typed stub so the compiler knows about it
-resource appgatewaysubnet 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
+resource appGatewaySubnet 'Microsoft.Network/virtualNetworks/subnets@2024-03-01' existing = {
   name: last(split(appGatewaySubnetId, '/'))
 }
 
 // Assigns the Network Contributor role to the Application Gateway Ingress Controller (AGIC) managed identity for the Application Gateway subnet.
 resource applicationGatewaySubnetAgicNetworkContributorAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, appgatewaysubnet.id, 'network contributor')
-  scope: appgatewaysubnet 
+  name: guid(subscription().id, appGatewaySubnet.id, 'network contributor')
+  scope: appGatewaySubnet 
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4d97b98b-1d4f-4787-a291-c67834d212e7') 
     principalId: aksCluster.properties.addonProfiles.ingressApplicationGateway.identity.objectId

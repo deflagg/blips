@@ -16,6 +16,9 @@ resource aksClusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@20
   location: location
 }
 
+@description('Specifies the ID of the Application Gateway Subnet.')
+param appGatewaySubnetId string
+
 @description('Specifies the ID of the Application Gateway.')
 param appGatewayId string = 'appgateway-sysdesign'
 
@@ -145,6 +148,11 @@ resource applicationGatewayAgicContributorRoleAssignment 'Microsoft.Authorizatio
     principalType: 'ServicePrincipal'
     
   }
+}
+
+// Turn the ID into a typed stub so the compiler knows about it
+resource appgatewaysubnet 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' existing = {
+  name: last(split(appGatewaySubnetId, '/'))
 }
 
 // Assigns the Network Contributor role to the Application Gateway Ingress Controller (AGIC) managed identity for the Application Gateway subnet.

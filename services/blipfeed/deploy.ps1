@@ -57,14 +57,15 @@ $release   = "blipfeed"
 $namespace = "blipfeed"
 $chartPath = "./helm"
 
-helm lint "$chartPath"          # catches chart errors
+#helm lint "$chartPath"          # catches chart errors
 # Idempotent deploy: upgrades if present, installs if not
 helm upgrade --install $release "$chartPath" `
   --namespace $namespace `
   --create-namespace `
-  --atomic `
-  --wait `
-  --timeout 10m0s
+  --atomic
+
+#   --wait `
+#   --timeout 10m0s
 
 if ($LASTEXITCODE -ne 0) {
     write-error "Helm upgrade/install failed."

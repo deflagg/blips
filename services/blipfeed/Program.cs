@@ -1,8 +1,16 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services
+    .AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
+    
 
 var app = builder.Build();
 
@@ -13,6 +21,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// ----------  Health-check endpoints ----------
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = reg => reg.Tags.Contains("live")
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    // by default include *all* checks; filter to "ready" if you tag them
+    Predicate = reg => true
+});
+// ---------------------------------------------
 
 var summaries = new[]
 {

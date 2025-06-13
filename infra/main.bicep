@@ -92,7 +92,8 @@ module aksModule './modules/aks.bicep' = {
     location               : location
     containerRegistryId    : acrModule.outputs.containerRegistryId
     vnetSubnetId           : vnetModule.outputs.defaultSubnetId
-    applicationGatewayId   : appGwModule.outputs.applicationGatewayId
+    appGatewayId           : appGwModule.outputs.appGatewayId
+    appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
     aksClusterName         : aksClusterName
     dnsPrefix              : dnsPrefix
   }

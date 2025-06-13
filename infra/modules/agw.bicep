@@ -155,6 +155,6 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
 // -----------------------------------------------------------------------------
 // Outputs
 // -----------------------------------------------------------------------------
-output applicationGatewayId         string = applicationGateway.id
-output applicationGatewayIdentityId string = applicationGatewayIdentity.id
+output appGatewayId                  string = applicationGateway.id
+output appGatewayIdentityId         string = applicationGatewayIdentity.id
 output publicIpId                   string = publicIPAddress.id

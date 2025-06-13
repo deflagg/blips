@@ -53,14 +53,20 @@ $env:PATH += ";/usr/local/bin"
 
 az aks get-credentials --resource-group sysdesign --name aks-sysdesign
 
+$release   = "blipfeed"
+$namespace = "blipfeed"
+$chartPath = "./helm"
+
+# Idempotent deploy: upgrades if present, installs if not
+helm upgrade --install $release $chartPath `
+  --namespace $namespace `
+  --create-namespace `
+  --atomic       `  # roll back on failure
+  --wait         `  # wait for resources to be ready
+  --timeout 10m      # optional: adjust to your needs
+
 if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to get AKS credentials. Please check your resource group and AKS cluster name."
+    write-error "Helm upgrade/install failed."
     exit 1
 }
-
-helm install blipfeed -n blipfeed --create-namespace ./helm
-
-if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to install Helm chart."
-    exit 1
-}
+write-host "Helm release $release deployed (namespace: $namespace)." -f Green

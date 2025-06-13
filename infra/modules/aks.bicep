@@ -11,10 +11,7 @@ param containerRegistryId string
 @description('Resource ID of the subnet where agent nodes live.')
 param vnetSubnetId string
 
-resource aksClusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
-  name: 'aks-sysdesign-identity'
-  location: location
-}
+
 
 @description('Specifies the ID of the Application Gateway Subnet.')
 param appGatewaySubnetId string
@@ -31,6 +28,11 @@ param aksClusterName string = 'aks-${projectName}'
 
 @description('Specifies the DNS prefix for the AKS cluster.')
 param dnsPrefix string = 'aksdns-${projectName}'
+
+resource aksClusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
+  name: 'aks-sysdesign-identity'
+  location: location
+}
 
 resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
   name: aksClusterName

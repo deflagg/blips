@@ -62,7 +62,7 @@ ingress:
           pathType: ImplementationSpecific
           backend:
             serviceName: blips-blipfeed
-            servicePort: 80
+            servicePort: 8080
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:

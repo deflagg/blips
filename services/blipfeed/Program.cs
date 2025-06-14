@@ -28,7 +28,7 @@ if (app.Environment.IsProduction())
 // ----------  Health-check endpoints ----------
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
-    Predicate = reg => reg.Tags.Contains("live")
+    Predicate = reg => false //reg.Tags.Contains("live")
 });
 
 app.MapHealthChecks("/health/ready", new HealthCheckOptions

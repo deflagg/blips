@@ -9,10 +9,7 @@ builder.Services.AddOpenApi();
 
 builder.Services
     .AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" })
-    .AddCheck("simulated-live-fail",
-              () => HealthCheckResult.Unhealthy("Simulated failure"),
-              tags: new[] { "live" });
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
     
 
 var app = builder.Build();

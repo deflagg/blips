@@ -19,7 +19,7 @@ az stack group create `
     --template-file  $TemplateFile `
     --action-on-unmanage detachAll `
     --deny-settings-mode None `
-    --description 'Core infrastructure deployment.'
+    --description 'Core infrastructure deployment.' `
     --verbose
 #    --parameters     @$ParametersFile
 

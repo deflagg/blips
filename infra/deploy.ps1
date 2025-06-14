@@ -20,5 +20,6 @@ az stack group create `
     --action-on-unmanage detachAll `
     --deny-settings-mode None `
     --description 'Core infrastructure deployment.'
+    --verbose
 #    --parameters     @$ParametersFile
 

@@ -9,9 +9,10 @@ param location string = resourceGroup().location
 param containerRegistryId string
 
 @description('Resource ID of the subnet where agent nodes live.')
-param vnetSubnetId string
+param aksSubnetId string
 
-
+@description('Specifies the name of the Virtual Network.')
+param vnetId string
 
 @description('Specifies the ID of the Application Gateway Subnet.')
 param appGatewaySubnetId string
@@ -57,7 +58,7 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
         osDiskSizeGB: 128
         osDiskType: 'Managed'
         kubeletDiskType: 'OS'
-        vnetSubnetID: vnetSubnetId
+        vnetSubnetID: aksSubnetId
         maxPods: 110
         type: 'VirtualMachineScaleSets'
         enableAutoScaling: true
@@ -152,9 +153,18 @@ resource applicationGatewayAgicContributorRoleAssignment 'Microsoft.Authorizatio
   }
 }
 
+resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' existing = {
+  name: last(split(vnetId, '/'))
+}
+
 // Turn the ID into a typed stub so the compiler knows about it
+//resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'appgateway-subnet')
+// Turn the ID into a typed stub so the compiler knows about it
+ // last(split(appGatewaySubnetId, '/'))
 resource appGatewaySubnet 'Microsoft.Network/virtualNetworks/subnets@2024-03-01' existing = {
+  parent: vnet
   name: last(split(appGatewaySubnetId, '/'))
+
 }
 
 // Assigns the Network Contributor role to the Application Gateway Ingress Controller (AGIC) managed identity for the Application Gateway subnet.

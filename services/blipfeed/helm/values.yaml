@@ -51,9 +51,10 @@ service:
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: true
-  className: "appgateway-sysdesign"
+  className: azure/application-gateway
   annotations:
-    kubernetes.io/ingress.class: "appgateway-sysdesign"
+    kubernetes.io/ingress.class: azure/application-gateway
+    #kubernetes.io/ingress.class: "appgateway-sysdesign"
     # kubernetes.io/tls-acme: "true"
   hosts:
     - host: blipfeed.blips.service

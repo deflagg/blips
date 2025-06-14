@@ -9,7 +9,10 @@ builder.Services.AddOpenApi();
 
 builder.Services
     .AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" })
+    .AddCheck("simulated-live-fail",
+              () => HealthCheckResult.Unhealthy("Simulated failure"),
+              tags: new[] { "live" });
     
 
 var app = builder.Build();
@@ -28,13 +31,12 @@ if (app.Environment.IsProduction())
 // ----------  Health-check endpoints ----------
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
-    Predicate = reg => false //reg.Tags.Contains("live")
+    Predicate = reg => reg.Tags.Contains("live")   // run only the failing check
 });
 
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
-    // by default include *all* checks; filter to "ready" if you tag them
-    Predicate = reg => reg.Tags.Contains("ready")
+    Predicate = reg => reg.Tags.Contains("ready")  // run only the ready checks
 });
 // ---------------------------------------------
 

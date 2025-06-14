@@ -1,5 +1,7 @@
 # Use the .NET 9 SDK image to build the application
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ENV ASPNETCORE_URLS=http://+:8080
+
 WORKDIR /source
 
 # Copy the project file and restore dependencies

@@ -20,7 +20,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 // ----------  Health-check endpoints ----------
 app.MapHealthChecks("/health/live", new HealthCheckOptions

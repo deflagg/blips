@@ -9,7 +9,7 @@ builder.Services.AddOpenApi();
 
 builder.Services
     .AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live", "ready" });
     
 
 var app = builder.Build();
@@ -31,7 +31,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     // by default include *all* checks; filter to "ready" if you tag them
-    Predicate = reg => true
+    Predicate = reg => reg.Tags.Contains("ready")
 });
 // ---------------------------------------------
 

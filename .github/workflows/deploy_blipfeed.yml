@@ -6,10 +6,13 @@ name: Deploy Blip Feed
 on:
   # run workflow on push to main branch
   workflow_dispatch:
-    
+  
   push:
     branches:
       - main
+    paths:
+      - 'services/blipfeed/**'
+      - '.github/workflows/deploy_blipfeed.yml'
 
 # 🔑 Allow OIDC token issuance
 permissions:

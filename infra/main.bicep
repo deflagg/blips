@@ -9,8 +9,7 @@ param location string = resourceGroup().location
 @description('Existing or new ACR name.')
 param containerRegistryName string = 'acr${projectName}'
 
-@description('Root DNS zone name (e.g. "example.com").')
-param dnsZoneName string
+
 
 @description('ACR SKU')
 @allowed([
@@ -26,6 +25,7 @@ param vnetName               string = 'vnet-${projectName}'
 param applicationGatewayName string = 'appgateway-${projectName}'
 param aksClusterName         string = 'aks-${projectName}'
 param dnsPrefix              string = 'dns-${projectName}'
+param dnsZoneName            string = 'priv.${dnsPrefix}.com'
 
 // --------------------------------------------------
 // APIM – extra parameters (only what the module needs)

@@ -9,6 +9,9 @@ param location string = resourceGroup().location
 @description('Existing or new ACR name.')
 param containerRegistryName string = 'acr${projectName}'
 
+@description('Root DNS zone name (e.g. "example.com").')
+param dnsZoneName string
+
 @description('ACR SKU')
 @allowed([
   'Basic'
@@ -51,6 +54,19 @@ module vnetModule './modules/vnet.bicep' = {
     location    : location
   }
 }
+
+
+// -----------------------------------------------------------------------------
+//  MODULE: Public DNS Zone (Zone 1)
+// -----------------------------------------------------------------------------
+module dnsModule './modules/dns.bicep' = {
+  name: 'privateDnsDeployment'
+  params: {
+    dnsZoneName: dnsZoneName          // existing param
+    vnetId     : vnetModule.outputs.vnetId
+  }
+}
+
 
 // --------------------------------------------------
 // ACR

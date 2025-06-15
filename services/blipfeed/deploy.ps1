@@ -88,7 +88,7 @@ $externalIp = az network application-gateway frontend-ip show `
   --resource-group sysdesign `
   --gateway-name agw-sysdesign `
   --name agw-frontend-ip `
-  --query "publicIPAddress" -o tsv
+  --query "publicIPAddress"
 
 
 

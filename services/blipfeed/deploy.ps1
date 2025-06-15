@@ -84,11 +84,7 @@ $recordName = "blipfeed" # e.g., blipfeed.<your-domain.com>
 # application gateway frontend IP 
 
 #get the IP address of the application gateway
-$externalIp = az network application-gateway frontend-ip show `
-  --resource-group sysdesign `
-  --gateway-name agw-sysdesign `
-  --name agw-frontend-ip `
-  --query "publicIPAddress"
+$externalIp = "20.57.68.47"
 
 
 

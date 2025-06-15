@@ -59,13 +59,13 @@ module vnetModule './modules/vnet.bicep' = {
 // -----------------------------------------------------------------------------
 //  MODULE: Public DNS Zone (Zone 1)
 // -----------------------------------------------------------------------------
-module dnsModule './modules/dns.bicep' = {
-  name: 'privateDnsDeployment'
-  params: {
-    dnsZoneName: dnsZoneName          // existing param
-    vnetId     : vnetModule.outputs.vnetId
-  }
-}
+// module dnsModule './modules/dns.bicep' = {
+//   name: 'privateDnsDeployment'
+//   params: {
+//     dnsZoneName: dnsZoneName          // existing param
+//     vnetId     : vnetModule.outputs.vnetId
+//   }
+// }
 
 
 // --------------------------------------------------
@@ -118,37 +118,37 @@ module aksModule './modules/aks.bicep' = {
 }
 
 // APIM sits in front of the App Gateway created by the AKS module.
-module apimModule './modules/apim.bicep' = {
-  name: 'apimDeployment'
-  params: {
-    apimName        : apimName
-    location        : location
-    publisherEmail  : publisherEmail
-    publisherName   : publisherName
-    // VNet containing both AKS & App Gateway (resource already created by aksModule)
-    vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
-    subnetName      : apimSubnetName
-    // Forward traffic from APIM to the App Gateway listener
-    appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
-  }
-  dependsOn: [
-    appGwModule // ensure App Gateway exists before APIM backend registration
-  ]
-}
+// module apimModule './modules/apim.bicep' = {
+//   name: 'apimDeployment'
+//   params: {
+//     apimName        : apimName
+//     location        : location
+//     publisherEmail  : publisherEmail
+//     publisherName   : publisherName
+//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
+//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
+//     subnetName      : apimSubnetName
+//     // Forward traffic from APIM to the App Gateway listener
+//     appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
+//   }
+//   dependsOn: [
+//     appGwModule // ensure App Gateway exists before APIM backend registration
+//   ]
+// }
 
 // --------------------------------------------------
 // App Service
 // --------------------------------------------------
-module web './modules/appsvc.bicep' = {
-  name: 'webAppModule'
-  params: {
-    location: location
-    appServicePlanName: '${projectName}-plan'
-    appServicePlanSkuName: 'B1'
-    siteName: 'react-${uniqueString(resourceGroup().id)}'
-    integrationSubnetId: vnetModule.outputs.appSvcIntegrationSubnetId
-  }
-}
+// module web './modules/appsvc.bicep' = {
+//   name: 'webAppModule'
+//   params: {
+//     location: location
+//     appServicePlanName: '${projectName}-plan'
+//     appServicePlanSkuName: 'B1'
+//     siteName: 'react-${uniqueString(resourceGroup().id)}'
+//     integrationSubnetId: vnetModule.outputs.appSvcIntegrationSubnetId
+//   }
+// }
 
 
 // --------------------------------------------------

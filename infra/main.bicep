@@ -154,5 +154,5 @@ module aksModule './modules/aks.bicep' = {
 // --------------------------------------------------
 // Outputs
 // --------------------------------------------------
-output aksClusterId   string = aksModule.outputs.aksClusterId
-output apimServiceId  string = apimModule.outputs.apimResourceId
+// output aksClusterId   string = aksModule.outputs.aksClusterId
+// output apimServiceId  string = apimModule.outputs.apimResourceId

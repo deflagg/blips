@@ -66,8 +66,30 @@ helm upgrade --install $release "$chartPath" `
   --create-namespace `
   --atomic
 
-#   --wait `
-#   --timeout 10m0s
+$resourceGroup = "global"
+$zoneName = priv.dns-sysdesign.com
+$recordName = "blipfeed" # e.g., blipfeed.<your-domain.com>
+
+# Get the external IP of the service
+#$externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
+$externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
+# application gateway frontend IP
+
+
+if (-not $externalIp) {
+    Write-Host "No external IP found for service blips-blipfeed. Skipping DNS update."
+} else {
+    # Create the record set if it doesn't exist
+    az network dns record-set a create --resource-group $resourceGroup --zone-name $zoneName --name $recordName --ttl 60
+
+    # Remove existing records (optional, ensures only current IP is present)
+    az network dns record-set a remove-record --resource-group $resourceGroup --zone-name $zoneName --record-set-name $recordName --ipv4-address "*" --yes
+
+    # Add the new IP
+    az network dns record-set a add-record --resource-group $resourceGroup --zone-name $zoneName --record-set-name $recordName --ipv4-address $externalIp
+
+    Write-Host "DNS record updated: $recordName.$zoneName -> $externalIp"
+}
 
 if ($LASTEXITCODE -ne 0) {
     write-error "Helm upgrade/install failed."

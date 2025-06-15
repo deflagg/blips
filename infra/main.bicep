@@ -59,13 +59,13 @@ module vnetModule './modules/vnet.bicep' = {
 // -----------------------------------------------------------------------------
 //  MODULE: Public DNS Zone (Zone 1)
 // -----------------------------------------------------------------------------
-// module dnsModule './modules/dns.bicep' = {
-//   name: 'privateDnsDeployment'
-//   params: {
-//     dnsZoneName: dnsZoneName          // existing param
-//     vnetId     : vnetModule.outputs.vnetId
-//   }
-// }
+module dnsModule './modules/dns.bicep' = {
+  name: 'privateDnsDeployment'
+  params: {
+    dnsZoneName: dnsZoneName          // existing param
+    vnetId     : vnetModule.outputs.vnetId
+  }
+}
 
 
 // --------------------------------------------------

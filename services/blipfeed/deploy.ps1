@@ -66,14 +66,30 @@ helm upgrade --install $release "$chartPath" `
   --create-namespace `
   --atomic
 
+if ($LASTEXITCODE -ne 0) {
+    write-error "Helm upgrade/install failed."
+    exit 1
+}
+
+write-host "Helm release $release deployed (namespace: $namespace)." -f Green
+
 $resourceGroup = "global"
 $zoneName = "priv.dns-sysdesign.com"
 $recordName = "blipfeed" # e.g., blipfeed.<your-domain.com>
 
 # Get the external IP of the service
 #$externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
-$externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
-# application gateway frontend IP
+# $externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
+
+# application gateway frontend IP 
+
+#get the IP address of the application gateway
+$externalIp = az network application-gateway frontend-ip show `
+  --resource-group sysdesign `
+  --gateway-name agw-sysdesign `
+  --name agw-frontend-ip `
+  --query "publicIPAddress" -o tsv
+
 
 
 if (-not $externalIp) {
@@ -91,8 +107,4 @@ if (-not $externalIp) {
     Write-Host "DNS record updated: $recordName.$zoneName -> $externalIp"
 }
 
-if ($LASTEXITCODE -ne 0) {
-    write-error "Helm upgrade/install failed."
-    exit 1
-}
-write-host "Helm release $release deployed (namespace: $namespace)." -f Green
+

@@ -67,7 +67,7 @@ helm upgrade --install $release "$chartPath" `
   --atomic
 
 $resourceGroup = "global"
-$zoneName = priv.dns-sysdesign.com
+$zoneName = "priv.dns-sysdesign.com"
 $recordName = "blipfeed" # e.g., blipfeed.<your-domain.com>
 
 # Get the external IP of the service

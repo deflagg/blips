@@ -21,6 +21,7 @@ param containerRegistrySku string = 'Basic'
 
 // You asked for “everything in infrastructure_definition” to live in aks.bicep
 // so we forward only those parameters actually defined there.
+param hubVnetName            string = 'hubvnet-${projectName}'
 param vnetName               string = 'vnet-${projectName}'
 param applicationGatewayName string = 'appgateway-${projectName}'
 param aksClusterName         string = 'aks-${projectName}'
@@ -42,18 +43,29 @@ param publisherName string = 'API Team'
 @description('Dedicated subnet name for APIM inside the VNet.')
 param apimSubnetName string = 'apim-subnet'
 
-
 // --------------------------------------------------
-// VNet
+// Hub - VNet
 // --------------------------------------------------
-module vnetModule './modules/vnet.bicep' = {
-  name: 'vnetDeployment'
+module hubVnetModule './modules/hubvnet.bicep' = {
+  name: 'hubVnetDeployment'
   params: {
     projectName : projectName
-    vnetName    : vnetName
+    hubVnetName    : hubVnetName
     location    : location
   }
 }
+
+// --------------------------------------------------
+// Spoke - VNet
+// --------------------------------------------------
+// module vnetModule './modules/vnet.bicep' = {
+//   name: 'vnetDeployment'
+//   params: {
+//     projectName : projectName
+//     vnetName    : vnetName
+//     location    : location
+//   }
+// }
 
 
 // -----------------------------------------------------------------------------
@@ -71,51 +83,51 @@ module vnetModule './modules/vnet.bicep' = {
 // --------------------------------------------------
 // ACR
 // --------------------------------------------------
-module acrModule './modules/acr.bicep' = {
-  name: 'acrDeployment'
-  params: {
-    projectName:           projectName          // already defined in main.bicep
-    location:              location
-    containerRegistryName: containerRegistryName
-    containerRegistrySku:  containerRegistrySku // if you expose this param
-  }
-}
+// module acrModule './modules/acr.bicep' = {
+//   name: 'acrDeployment'
+//   params: {
+//     projectName:           projectName          // already defined in main.bicep
+//     location:              location
+//     containerRegistryName: containerRegistryName
+//     containerRegistrySku:  containerRegistrySku // if you expose this param
+//   }
+// }
 
 
 // --------------------------------------------------
 // App Gateway
 // --------------------------------------------------
-module appGwModule './modules/agw.bicep' = {
-  name: 'appGwDeployment'
-  params: {
-    projectName           : projectName
-    applicationGatewayName: applicationGatewayName
-    vnetName              : vnetName
-    location              : location
-  }
-  dependsOn: [
-    vnetModule  //  Remember I uncommented this.
-  ]
-}
+// module appGwModule './modules/agw.bicep' = {
+//   name: 'appGwDeployment'
+//   params: {
+//     projectName           : projectName
+//     applicationGatewayName: applicationGatewayName
+//     vnetName              : vnetName
+//     location              : location
+//   }
+//   dependsOn: [
+//     vnetModule  //  Remember I uncommented this.
+//   ]
+// }
 
 // --------------------------------------------------
 // AKS
 // --------------------------------------------------
-module aksModule './modules/aks.bicep' = {
-  name: 'aksDeployment'
-  params: {
-    projectName            : projectName
-    location               : location
-    containerRegistryId    : acrModule.outputs.containerRegistryId
-    vnetId                 : vnetModule.outputs.vnetId
-    aksSubnetId            : vnetModule.outputs.aksSubnetId
-    appGatewaySubnetId     : vnetModule.outputs.appGatewaySubnetId 
-    appGatewayId           : appGwModule.outputs.appGatewayId
-    appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
-    aksClusterName         : aksClusterName
-    dnsPrefix              : dnsPrefix
-  }
-}
+// module aksModule './modules/aks.bicep' = {
+//   name: 'aksDeployment'
+//   params: {
+//     projectName            : projectName
+//     location               : location
+//     containerRegistryId    : acrModule.outputs.containerRegistryId
+//     vnetId                 : vnetModule.outputs.vnetId
+//     aksSubnetId            : vnetModule.outputs.aksSubnetId
+//     appGatewaySubnetId     : vnetModule.outputs.appGatewaySubnetId 
+//     appGatewayId           : appGwModule.outputs.appGatewayId
+//     appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
+//     aksClusterName         : aksClusterName
+//     dnsPrefix              : dnsPrefix
+//   }
+// }
 
 // APIM sits in front of the App Gateway created by the AKS module.
 // module apimModule './modules/apim.bicep' = {

@@ -52,7 +52,7 @@ resource appSvcIntegrationSubnet 'Microsoft.Network/virtualNetworks/subnets@2024
   }
 }
 
-resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2024-07-01' = {
   name: vnetName
   location: location
   properties: {
@@ -96,7 +96,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-03-01' = {
   }
 }
 
-output vnetId                     string = vnet.id
+output vnetName string = vnet.name
+output vnetId   string = vnet.id
 output aksSubnetId                string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'default-subnet')
 output appGatewaySubnetId         string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'appgateway-subnet')
 output apimSubnetId               string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'apim-subnet')

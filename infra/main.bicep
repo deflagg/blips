@@ -22,7 +22,7 @@ param containerRegistrySku string = 'Basic'
 // You asked for “everything in infrastructure_definition” to live in aks.bicep
 // so we forward only those parameters actually defined there.
 param hubVnetName            string = 'hubvnet-${projectName}'
-param vnetName               string = 'vnet-${projectName}'
+param spoke1VnetName         string = 'vnet-${projectName}'
 param applicationGatewayName string = 'appgateway-${projectName}'
 param aksClusterName         string = 'aks-${projectName}'
 param dnsPrefix              string = 'dns-${projectName}'
@@ -56,16 +56,32 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 }
 
 // --------------------------------------------------
-// Spoke - VNet
+// Spoke1 - VNet
 // --------------------------------------------------
-// module vnetModule './modules/vnet.bicep' = {
-//   name: 'vnetDeployment'
-//   params: {
-//     projectName : projectName
-//     vnetName    : vnetName
-//     location    : location
-//   }
-// }
+module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
+  name: 'spoke1VnetDeployment'
+  params: {
+    projectName : projectName
+    vnetName    : spoke1VnetName
+    location    : location
+  }
+}
+
+module vnetPeering './modules/peering.bicep' = {
+  name: 'hubSpokePeering'
+  params: {
+    hubVnetName:           hubVnetModule.outputs.vnetName
+    spokeVnetName:         spoke1VnetModule.outputs.vnetName
+    hubVnetId:             hubVnetModule.outputs.vnetId
+    spokeVnetId:           spoke1VnetModule.outputs.vnetId
+    hubToSpokePeeringName: 'hub-to-spoke1'
+    spokeToHubPeeringName: 'spoke1-to-hub'
+  }
+  dependsOn: [
+    hubVnetModule
+    spoke1VnetModule
+  ]
+}
 
 
 // -----------------------------------------------------------------------------
@@ -75,7 +91,7 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 //   name: 'privateDnsDeployment'
 //   params: {
 //     dnsZoneName: dnsZoneName          // existing param
-//     vnetId     : vnetModule.outputs.vnetId
+//     vnetId     : spoke1VnetModule.outputs.vnetId
 //   }
 // }
 
@@ -102,11 +118,11 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 //   params: {
 //     projectName           : projectName
 //     applicationGatewayName: applicationGatewayName
-//     vnetName              : vnetName
+//     vnetName              : spoke1VnetName
 //     location              : location
 //   }
 //   dependsOn: [
-//     vnetModule  //  Remember I uncommented this.
+//     spoke1VnetModule  //  Remember I uncommented this.
 //   ]
 // }
 
@@ -119,9 +135,9 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 //     projectName            : projectName
 //     location               : location
 //     containerRegistryId    : acrModule.outputs.containerRegistryId
-//     vnetId                 : vnetModule.outputs.vnetId
-//     aksSubnetId            : vnetModule.outputs.aksSubnetId
-//     appGatewaySubnetId     : vnetModule.outputs.appGatewaySubnetId 
+//     vnetId                 : spoke1VnetModule.outputs.vnetId
+//     aksSubnetId            : spoke1VnetModule.outputs.aksSubnetId
+//     appGatewaySubnetId     : spoke1VnetModule.outputs.appGatewaySubnetId
 //     appGatewayId           : appGwModule.outputs.appGatewayId
 //     appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
 //     aksClusterName         : aksClusterName
@@ -138,7 +154,7 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 //     publisherEmail  : publisherEmail
 //     publisherName   : publisherName
 //     // VNet containing both AKS & App Gateway (resource already created by aksModule)
-//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', vnetName)
+//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', spoke1VnetName)
 //     subnetName      : apimSubnetName
 //     // Forward traffic from APIM to the App Gateway listener
 //     appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
@@ -151,16 +167,16 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 // --------------------------------------------------
 // App Service
 // --------------------------------------------------
-// module web './modules/appsvc.bicep' = {
-//   name: 'webAppModule'
-//   params: {
-//     location: location
-//     appServicePlanName: '${projectName}-plan'
-//     appServicePlanSkuName: 'B1'
-//     siteName: 'react-${uniqueString(resourceGroup().id)}'
-//     integrationSubnetId: vnetModule.outputs.appSvcIntegrationSubnetId
-//   }
-// }
+module web './modules/appsvc.bicep' = {
+  name: 'webAppModule'
+  params: {
+    location: location
+    appServicePlanName: '${projectName}-plan'
+    appServicePlanSkuName: 'B1'
+    siteName: 'react-${uniqueString(resourceGroup().id)}'
+    integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
+  }
+}
 
 
 // --------------------------------------------------

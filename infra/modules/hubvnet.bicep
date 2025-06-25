@@ -139,3 +139,5 @@ resource vpnConnection 'Microsoft.Network/connections@2024-07-01' = {
 }
 
 
+output vnetName string = hubVnet.name
+output vnetId   string = hubVnet.id

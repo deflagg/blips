@@ -1,2 +1,3 @@
 nogit/
-
+vpncert/
+!vpncert/createVPNCert.ps1

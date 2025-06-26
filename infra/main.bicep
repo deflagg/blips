@@ -22,7 +22,7 @@ param containerRegistrySku string = 'Basic'
 // You asked for “everything in infrastructure_definition” to live in aks.bicep
 // so we forward only those parameters actually defined there.
 param hubVnetName            string = 'hubvnet-${projectName}'
-param spoke1VnetName         string = 'vnet-${projectName}'
+param spoke1VnetName         string = 'spoke1Vnet-${projectName}'
 param applicationGatewayName string = 'appgateway-${projectName}'
 param aksClusterName         string = 'aks-${projectName}'
 param dnsPrefix              string = 'dns-${projectName}'
@@ -87,13 +87,13 @@ module vnetPeering './modules/peering.bicep' = {
 // -----------------------------------------------------------------------------
 //  MODULE: Public DNS Zone (Zone 1)
 // -----------------------------------------------------------------------------
-// module dnsModule './modules/dns.bicep' = {
-//   name: 'privateDnsDeployment'
-//   params: {
-//     dnsZoneName: dnsZoneName          // existing param
-//     vnetId     : spoke1VnetModule.outputs.vnetId
-//   }
-// }
+module dnsModule './modules/dns.bicep' = {
+  name: 'privateDnsDeployment'
+  params: {
+    dnsZoneName: dnsZoneName          // existing param
+    vnetId     : hubVnetModule.outputs.vnetId
+  }
+}
 
 
 // --------------------------------------------------
@@ -175,6 +175,8 @@ module web './modules/appsvc.bicep' = {
     appServicePlanSkuName: 'B1'
     siteName: 'react-${uniqueString(resourceGroup().id)}'
     integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
+    defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
+    webAppPrivateDnsZoneId: dnsModule.outputs.dnsZoneResourceId
   }
 }
 

@@ -29,6 +29,14 @@ param tags object = {
 @description('Subnet to use for Regional VNet Integration')
 param integrationSubnetId string
 
+
+@description('Resource ID of the subnet that will host the Private Endpoint (default-subnet in the spoke VNet).')
+param defaultSubnetId string
+
+@description('Resource ID of an existing Private DNS zone: privatelink.azurewebsites.net')
+param webAppPrivateDnsZoneId string
+
+
 // --------------------
 // App Service Plan
 // --------------------
@@ -90,6 +98,56 @@ resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2024-04-01' = {
     swiftSupported: true 
   }
 }
+
+// -----------------------------------------------------------------------------
+// Private Endpoint – Web App  ↔  Spoke default subnet
+// -----------------------------------------------------------------------------
+
+
+resource webAppPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${siteName}-pep'
+  location: location
+  properties: {
+    subnet: {
+      id: defaultSubnetId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${siteName}-plsc'
+        properties: {
+          privateLinkServiceId: webApp.id
+          groupIds: [
+            // Primary endpoint for the site; include 'scm' as well
+            // if you need Kudu via Private Link.
+            'sites'
+          ]
+        }
+      }
+    ]
+  }
+  // implicit dependency on webApp via the id reference above
+}
+
+// -----------------------------------------------------------------------------
+// OPTIONAL – automatic A‑record registration in privatelink.azurewebsites.net
+// Uncomment if you are *also* passing the private DNS zone’s resource ID.
+// -----------------------------------------------------------------------------
+//resource webAppPeDnsZoneGroup 'Microsoft.Network/privateDnsZoneGroups@2024-07-01' = {
+resource webAppPeDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-07-01' = {
+  name: 'default'
+  parent: webAppPrivateEndpoint
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'azurewebsitesZone'
+        properties: {
+          privateDnsZoneId: webAppPrivateDnsZoneId
+        }
+      }
+    ]
+  }
+}
+
 
 // --------------------
 // Outputs

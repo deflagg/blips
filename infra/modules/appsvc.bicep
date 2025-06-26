@@ -125,7 +125,6 @@ resource webAppPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' =
       }
     ]
   }
-  // implicit dependency on webApp via the id reference above
 }
 
 // -----------------------------------------------------------------------------

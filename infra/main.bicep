@@ -176,7 +176,7 @@ module web './modules/appsvc.bicep' = {
     siteName: 'react-${uniqueString(resourceGroup().id)}'
     integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
     defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
-    webAppPrivateDnsZoneId: dnsModule.outputs.dnsZoneResourceId
+    webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
   }
 }
 

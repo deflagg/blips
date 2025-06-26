@@ -17,10 +17,19 @@ resource dnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
   properties: {}
 }
 
+// ---------- Websites private DNS zone ----------
+// • Resource type:  Microsoft.Network/privateDnsZones
+// • API version :   2023-09-01  :contentReference[oaicite:1]{index=1}
+resource websitesPrivZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
+  name: 'privatelink.azurewebsites.net'
+  location: 'global'
+  properties: {}
+}
+
 // ---------- VNet ↔ zone link ----------
 // • Resource type:  Microsoft.Network/privateDnsZones/virtualNetworkLinks
 // • API version :   2024-06-01  :contentReference[oaicite:1]{index=1}
-resource vnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
+resource vnetLink1 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
   name: 'vnetLink-${uniqueString(vnetId)}'   // must be unique *within* the zone
   parent: dnsZone                             // cleaner than embedding the zone name in `name`
   location: 'global'
@@ -34,4 +43,19 @@ resource vnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06
   }
 }
 
+resource vnetLink2 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
+  name: 'vnetLink-${uniqueString(vnetId)}'   // must be unique *within* the zone
+  parent: websitesPrivZone                             // cleaner than embedding the zone name in `name`
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: vnetId
+    }
+    // enable if you want VM hostname registration
+    registrationEnabled: false
+    // `resolutionPolicy` is optional; omit to use the default behaviour
+  }
+}
+
 output dnsZoneResourceId string = dnsZone.id
+output websitesPrivZoneResourceId string = websitesPrivZone.id

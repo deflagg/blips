@@ -1,10 +1,10 @@
-@DNS_FORWARDER_VM_PRIVATE_KEY = $env:DNS_FORWARDER_VM_PRIVATE_KEY
+
 
 # I needa  temp file from the string data
 Set-Content -Path '.\dnsforwarederprivatekey.pem' -Value $DNS_FORWARDER_VM_PRIVATE_KEY
 
 ssh-keygen -R 10.1.0.36    
-ssh -i 'C:\Users\defla\Downloads\dnsforwarederprivatekey.pem' azureuser@10.1.0.36
+ssh -i '.\dnsforwarederprivatekey.pem' azureuser@10.1.0.36
 
 sudo apt update
 sudo apt install -y dnsmasq

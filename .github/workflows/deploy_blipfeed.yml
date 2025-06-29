@@ -54,8 +54,6 @@ jobs:
     # Run the script
     - name: Run deploy.ps1
       uses: azure/powershell@v2
-      env:
-          DNS_FORWARDER_VM_PRIVATE_KEY: ${{ secrets.DNS_FORWARDER_VM_PRIVATE_KEY }}
       with:
         azPSVersion: "latest"
         inlineScript: |

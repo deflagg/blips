@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# install-dns-forwarder.sh  (no ssh commands here!)
 
 set -euo pipefail
 
@@ -30,21 +29,3 @@ sudo sed -i 's/127\.0\.0\.1 localhost/127.0.0.1 localhost dnsforwarder/' /etc/ho
 
 echo "Enabling & starting dnsmasq..."
 sudo systemctl enable --now dnsmasq
-
-
-#sudo chattr +i /etc/resolv.conf
-#sudo chattr -i /etc/resolv.conf
-
-# enable system to resolve its own hostname
-
-
-# update dnsmasq config to forward to Azure DNS 168.63.129.16
-#sudo systemctl restart dnsmasq
-
-
-# options edns0 trust-ad
-
-# sudo apt purge resolvconf
-
-
-# listen-address=127.0.0.1,172.16.201.2

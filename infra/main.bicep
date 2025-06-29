@@ -25,7 +25,7 @@ param hubVnetName            string = 'hubvnet-${projectName}'
 param spoke1VnetName         string = 'spoke1Vnet-${projectName}'
 param applicationGatewayName string = 'appgateway-${projectName}'
 param aksClusterName         string = 'aks-${projectName}'
-param dnsPrefix              string = 'dns-${projectName}'
+param dnsPrefix              string =  projectName
 param dnsZoneName            string = 'priv.${dnsPrefix}.com'
 
 // --------------------------------------------------
@@ -58,30 +58,30 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 // --------------------------------------------------
 // Spoke1 - VNet
 // --------------------------------------------------
-module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
-  name: 'spoke1VnetDeployment'
-  params: {
-    projectName : projectName
-    vnetName    : spoke1VnetName
-    location    : location
-  }
-}
+// module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
+//   name: 'spoke1VnetDeployment'
+//   params: {
+//     projectName : projectName
+//     vnetName    : spoke1VnetName
+//     location    : location
+//   }
+// }
 
-module vnetPeering './modules/peering.bicep' = {
-  name: 'hubSpokePeering'
-  params: {
-    hubVnetName:           hubVnetModule.outputs.vnetName
-    spokeVnetName:         spoke1VnetModule.outputs.vnetName
-    hubVnetId:             hubVnetModule.outputs.vnetId
-    spokeVnetId:           spoke1VnetModule.outputs.vnetId
-    hubToSpokePeeringName: 'hub-to-spoke1'
-    spokeToHubPeeringName: 'spoke1-to-hub'
-  }
-  dependsOn: [
-    hubVnetModule
-    spoke1VnetModule
-  ]
-}
+// module vnetPeering './modules/peering.bicep' = {
+//   name: 'hubSpokePeering'
+//   params: {
+//     hubVnetName:           hubVnetModule.outputs.vnetName
+//     spokeVnetName:         spoke1VnetModule.outputs.vnetName
+//     hubVnetId:             hubVnetModule.outputs.vnetId
+//     spokeVnetId:           spoke1VnetModule.outputs.vnetId
+//     hubToSpokePeeringName: 'hub-to-spoke1'
+//     spokeToHubPeeringName: 'spoke1-to-hub'
+//   }
+//   dependsOn: [
+//     hubVnetModule
+//     spoke1VnetModule
+//   ]
+// }
 
 
 // -----------------------------------------------------------------------------
@@ -92,6 +92,18 @@ module dnsModule './modules/dns.bicep' = {
   params: {
     dnsZoneName: dnsZoneName          // existing param
     vnetId     : hubVnetModule.outputs.vnetId
+  }
+}
+
+// --------------------------------------------------
+// Hub - VNet
+// --------------------------------------------------
+module dnsforwarderVMModule './modules/dnsforwarder-vm.bicep' = {
+  name: 'dnsforwarderVMDeployment'
+  params: {
+    projectName : projectName
+    location    : location
+    vnetId    : hubVnetModule.outputs.vnetId
   }
 }
 
@@ -167,18 +179,18 @@ module dnsModule './modules/dns.bicep' = {
 // --------------------------------------------------
 // App Service
 // --------------------------------------------------
-module web './modules/appsvc.bicep' = {
-  name: 'webAppModule'
-  params: {
-    location: location
-    appServicePlanName: '${projectName}-plan'
-    appServicePlanSkuName: 'B1'
-    siteName: 'react-${uniqueString(resourceGroup().id)}'
-    integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
-    defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
-    webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
-  }
-}
+// module web './modules/appsvc.bicep' = {
+//   name: 'webAppModule'
+//   params: {
+//     location: location
+//     appServicePlanName: '${projectName}-plan'
+//     appServicePlanSkuName: 'B1'
+//     siteName: 'react-${uniqueString(resourceGroup().id)}'
+//     integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
+//     defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
+//     webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
+//   }
+// }
 
 
 // --------------------------------------------------

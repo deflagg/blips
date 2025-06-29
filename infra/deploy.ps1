@@ -23,3 +23,5 @@ az stack group create `
     --verbose
 #    --parameters     @$ParametersFile
 
+
+./install-dns-forwarder.sh

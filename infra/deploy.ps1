@@ -54,3 +54,5 @@ sudo systemctl start dnsmasq
 
 echo "➤➤➤➤➤➤ Enabling dnsmasq service to start on boot ..."
 sudo systemctl enable dnsmasq
+
+exit 0

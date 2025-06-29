@@ -23,9 +23,6 @@ az stack group create `
     --verbose
 #    --parameters     @$ParametersFile
 
-#git update-index --chmod=+x install-dns-forwarder.sh
-
-
 Write-Host "`n➤ Running install-dns-forwarder.sh on $vmName ..."
 $scriptPath = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
 az vm run-command invoke `

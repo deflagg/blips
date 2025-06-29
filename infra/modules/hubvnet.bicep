@@ -72,77 +72,77 @@ resource vpnPip 'Microsoft.Network/publicIPAddresses@2024-07-01' = {
 }
 
 
-// resource vpnGateway 'Microsoft.Network/virtualNetworkGateways@2024-07-01' = {
-//   name: '${projectName}-vpn-gateway'
-//   location: location
-//   properties: {
-//     gatewayType: 'Vpn'
-//     sku: {
-//       name: 'VpnGw1'
-//       tier: 'VpnGw1'
-//     }
-//     vpnType: 'RouteBased'
-//     enableBgp: false
-//     ipConfigurations: [
-//       {
-//         name: 'vnetGatewayConfig'
-//         properties: {
-//           subnet: {
-//             // point at your new GatewaySubnet
-//             id: resourceId('Microsoft.Network/virtualNetworks/subnets', hubVnet.name, 'GatewaySubnet')
-//           }
-//           publicIPAddress: {
-//             id: vpnPip.id
-//           }
-//         }
-//       }
-//     ]
-//     vpnClientConfiguration: {
-//       vpnClientAddressPool: {
-//         addressPrefixes: [
-//           vpnClientAddressPool
-//         ]
-//       }
-//       vpnClientRootCertificates: [
-//         {
-//           name: vpnRootCertName
-//           properties: {
-//             publicCertData: vpnRootCertData
-//           }
-//         }
-//       ]
-//     }
-//   }
-// }
+resource vpnGateway 'Microsoft.Network/virtualNetworkGateways@2024-07-01' = {
+  name: '${projectName}-vpn-gateway'
+  location: location
+  properties: {
+    gatewayType: 'Vpn'
+    sku: {
+      name: 'VpnGw1'
+      tier: 'VpnGw1'
+    }
+    vpnType: 'RouteBased'
+    enableBgp: false
+    ipConfigurations: [
+      {
+        name: 'vnetGatewayConfig'
+        properties: {
+          subnet: {
+            // point at your new GatewaySubnet
+            id: resourceId('Microsoft.Network/virtualNetworks/subnets', hubVnet.name, 'GatewaySubnet')
+          }
+          publicIPAddress: {
+            id: vpnPip.id
+          }
+        }
+      }
+    ]
+    vpnClientConfiguration: {
+      vpnClientAddressPool: {
+        addressPrefixes: [
+          vpnClientAddressPool
+        ]
+      }
+      vpnClientRootCertificates: [
+        {
+          name: vpnRootCertName
+          properties: {
+            publicCertData: vpnRootCertData
+          }
+        }
+      ]
+    }
+  }
+}
 
-// resource localNetGateway 'Microsoft.Network/localNetworkGateways@2024-07-01' = {
-//   name: '${projectName}-onprem'
-//   location: location
-//   properties: {
-//     gatewayIpAddress: localGatewayIp
-//     localNetworkAddressSpace: {
-//       addressPrefixes: localAddressPrefixes
-//     }
-//   }
-// }
+resource localNetGateway 'Microsoft.Network/localNetworkGateways@2024-07-01' = {
+  name: '${projectName}-onprem'
+  location: location
+  properties: {
+    gatewayIpAddress: localGatewayIp
+    localNetworkAddressSpace: {
+      addressPrefixes: localAddressPrefixes
+    }
+  }
+}
 
 
-// resource vpnConnection 'Microsoft.Network/connections@2024-07-01' = {
-//   name: '${projectName}-hub-to-onprem'
-//   location: location
-//   properties: {
-//     connectionType: 'IPsec'
-//     virtualNetworkGateway1: {
-//       id: vpnGateway.id
-//       properties: {}
-//     }
-//     localNetworkGateway2: {
-//       id: localNetGateway.id
-//       properties: {}
-//     }
-//     sharedKey: connectionSharedKey
-//   }
-// }
+resource vpnConnection 'Microsoft.Network/connections@2024-07-01' = {
+  name: '${projectName}-hub-to-onprem'
+  location: location
+  properties: {
+    connectionType: 'IPsec'
+    virtualNetworkGateway1: {
+      id: vpnGateway.id
+      properties: {}
+    }
+    localNetworkGateway2: {
+      id: localNetGateway.id
+      properties: {}
+    }
+    sharedKey: connectionSharedKey
+  }
+}
 
 
 output vnetName string = hubVnet.name

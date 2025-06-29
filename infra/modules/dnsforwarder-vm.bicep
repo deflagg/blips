@@ -267,50 +267,9 @@ param location string = resourceGroup().location
 
 param virtualMachines_dnsforwarder_name string = 'dnsforwarder'
 param networkInterfaces_dnsforwarder482_z1_name string = 'dnsforwarder482_z1'
-param disks_dnsforwarder_OsDisk_1_d896b03008be41c186b15ea259a2a784_name string ='dnsforwarder_OsDisk_1_d896b03008be41c186b15ea259a2a784'
 param networkSecurityGroups_dnsforwarder_nsg_name string = 'dnsforwarder-nsg'
 
-/* --------------------------------------------------------------------- */
-/*  Managed OS disk                                                      */
-/* --------------------------------------------------------------------- */
-resource disk 'Microsoft.Compute/disks@2024-03-02' = {
-  name: disks_dnsforwarder_OsDisk_1_d896b03008be41c186b15ea259a2a784_name
-  location: location
-  sku: {
-    name: 'Standard_LRS'
-    tier: 'Standard'
-  }
-  zones: [
-    '1'
-  ]
-  properties: {
-    osType: 'Linux'
-    hyperVGeneration: 'V2'
-    supportsHibernation: true
-    supportedCapabilities: {
-      diskControllerTypes: 'SCSI, NVMe'
-      acceleratedNetwork: true
-      architecture: 'x64'
-    }
-    creationData: {
-      createOption: 'FromImage'
-      imageReference: {
-        id: '/subscriptions/400acf99-3ce6-4ee6-8bf7-9b209093ac5f/providers/Microsoft.Compute/locations/eastus2/publishers/canonical/artifactTypes/vmimage/offers/ubuntu-24_04-lts/skus/server/versions/24.04.202506060'
-      }
-    }
-    diskSizeGB: 30
-    diskIOPSReadWrite: 500
-    diskMBpsReadWrite: 60
-    encryption: {
-      type: 'EncryptionAtRestWithPlatformKey'
-    }
-    networkAccessPolicy: 'AllowAll'
-    securityProfile: {
-      securityType: 'TrustedLaunch'
-    }
-    publicNetworkAccess: 'Enabled'
-  }
-}
+
 
 /* --------------------------------------------------------------------- */
 /*  NSG (parent) + SSH rule (child)                                      */
@@ -390,11 +349,10 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
       osDisk: {
         osType: 'Linux'
         name: '${virtualMachines_dnsforwarder_name}_OsDisk_1_d896b03008be41c186b15ea259a2a784'
-        createOption: 'Attach'
+        createOption: 'FromImage'
         caching: 'ReadWrite'
         managedDisk: {
           storageAccountType: 'Standard_LRS'
-          id: disk.id
         }
         deleteOption: 'Delete'
         diskSizeGB: 30

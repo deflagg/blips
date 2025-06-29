@@ -38,7 +38,7 @@ echo "➤➤➤➤➤➤ Installing dnsmasq ..."
 sudo apt install -y dnsmasq
 echo "➤➤➤➤➤➤ Purging resolvconf ..."
 sudo apt purge resolvconf
-sudo -i
+#sudo -i
 
 echo "➤➤➤➤➤➤ Configuring dnsmasq ..."
 echo "no-resolv" | sudo tee -a /etc/dnsmasq.conf

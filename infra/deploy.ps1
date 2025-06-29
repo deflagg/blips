@@ -5,7 +5,7 @@ param(
 
 $TemplateFile   = Join-Path $PSScriptRoot 'main.bicep'
 $ParametersFile = Join-Path $PSScriptRoot 'main.parameters.json'
-
+$DnsForwarderScript = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
 
 Write-Host "`n➤ Creating resource group $ResourceGroupName in $Location ..."
 az group create `
@@ -24,4 +24,5 @@ az stack group create `
 #    --parameters     @$ParametersFile
 
 
-./install-dns-forwarder.sh
+Write-Host "`n➤ Installing DNS forwarder on new VM ..."
+& bash $DnsForwarderScript  # ← note the ampersand & to invoke, and bash to interpret

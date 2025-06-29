@@ -390,7 +390,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-11-01' = {
       osDisk: {
         osType: 'Linux'
         name: '${virtualMachines_dnsforwarder_name}_OsDisk_1_d896b03008be41c186b15ea259a2a784'
-        createOption: 'FromImage'
+        createOption: 'Attach'
         caching: 'ReadWrite'
         managedDisk: {
           storageAccountType: 'Standard_LRS'

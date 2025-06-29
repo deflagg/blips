@@ -27,12 +27,16 @@ az stack group create `
 Write-Host "`n➤ Installing DNS forwarder on new VM ..."
 $DNS_FORWARDER_VM_PRIVATE_KEY = $env:DNS_FORWARDER_VM_PRIVATE_KEY
 # call dns forwarder script with the private key
+write-host "writing private key to file"
 Set-Content -Path '.\dnsforwarederprivatekey.pem' -Value $DNS_FORWARDER_VM_PRIVATE_KEY
 ssh-keygen -R 10.1.0.36    
 ssh -i '.\dnsforwarederprivatekey.pem' azureuser@10.1.0.36
 
+echo "Updating apt ..."
 sudo apt update
+echo "Installing dnsmasq ..."
 sudo apt install -y dnsmasq
+echo "Purging resolvconf ..."
 sudo apt purge resolvconf
 sudo -i
 echo "no-resolv" | sudo tee -a /etc/dnsmasq.conf

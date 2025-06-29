@@ -1,25 +1,31 @@
+#!/usr/bin/env bash
+# install-dns-forwarder.sh  (no ssh commands here!)
 
+set -euo pipefail
 
-# I needa  temp file from the string data
-Set-Content -Path '.\dnsforwarederprivatekey.pem' -Value $DNS_FORWARDER_VM_PRIVATE_KEY
+echo "Updating apt..."
+sudo apt update -y
 
-ssh-keygen -R 10.1.0.36    
-ssh -i '.\dnsforwarederprivatekey.pem' azureuser@10.1.0.36
-
-sudo apt update
+echo "Installing dnsmasq..."
 sudo apt install -y dnsmasq
-sudo apt purge resolvconf
-sudo -i
-echo "no-resolv" | sudo tee -a /etc/dnsmasq.conf
-echo "server=168.63.129.16" | sudo tee -a /etc/dnsmasq.conf
-echo "interface=eth0" | sudo tee -a /etc/dnsmasq.conf
 
-sudo rm /etc/resolv.conf
-echo "nameserver 127.0.0.1" | sudo tee -a /etc/resolv.conf
-sudo sed -i 's/127.0.0.1 localhost/127.0.0.1 localhost dnsforwarder/' /etc/hosts
+echo "Purging resolvconf..."
+sudo apt purge -y resolvconf
 
-sudo systemctl start dnsmasq
-sudo systemctl enable dnsmasq
+echo "Configuring dnsmasq..."
+sudo tee /etc/dnsmasq.conf >/dev/null <<'CONF'
+no-resolv
+server=168.63.129.16
+interface=eth0
+CONF
+
+echo "Updating resolv.conf..."
+echo "nameserver 127.0.0.1" | sudo tee /etc/resolv.conf
+sudo sed -i 's/127\.0\.0\.1 localhost/127.0.0.1 localhost dnsforwarder/' /etc/hosts
+
+echo "Enabling & starting dnsmasq..."
+sudo systemctl enable --now dnsmasq
+
 
 #sudo chattr +i /etc/resolv.conf
 #sudo chattr -i /etc/resolv.conf

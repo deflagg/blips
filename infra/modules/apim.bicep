@@ -50,17 +50,14 @@ resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   }
   properties: {
     publisherEmail: publisherEmail
-    publisherName: publisherName
-    virtualNetworkType: 'External' // Use 'Internal' if APIM should not have a public IP
-    virtualNetworkConfiguration: {
-      subnetResourceId: '${vnetResourceId}/subnets/${subnetName}'
-    }
+    publisherName:  publisherName
+    publicNetworkAccess: 'Disabled'   // (optional) only allowed *after* PE exists
   }
 }
 
 // Register the Application Gateway as a logical backend inside APIM so that
 // APIs can forward requests to the gateway hostname.
-resource appGwBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = {
+resource apiBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' = {
   name: appGatewayBackendName
   parent: apim
   properties: {
@@ -70,9 +67,53 @@ resource appGwBackend 'Microsoft.ApiManagement/service/backends@2024-06-01-previ
   }
 }
 
+// Private Endpoint
+resource apimPe 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${apimName}-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: '${vnetResourceId}/subnets/${subnetName}'
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'apimGateway'
+        properties: {
+          privateLinkServiceId: apim.id
+          groupIds: [ 'gateway' ]     // APIM only supports the 'gateway' sub-resource
+        }
+      }
+    ]
+  }
+}
+
+// get existing dns zone for APIM
+var privDnsZoneName = 'priv.sysdesign.com'
+resource privDns 'Microsoft.Network/privateDnsZones@2024-06-01' existing = {
+  name: privDnsZoneName
+}
+
+// A-record for the gateway hostname -> PE’s private IP
+resource apiPrivARecord 'Microsoft.Network/privateDnsZones/A@2024-06-01' = {
+  name: apimName
+  parent: privDns
+  properties: {
+    ttl: 300
+    aRecords: [
+      {
+        ipv4Address: apimPe.properties.customDnsConfigs[0].ipAddresses[0]
+      }
+    ]
+  }
+}
+
+
 // =========================
 // Outputs
 // =========================
 output apimServiceName  string = apim.name
 output apimResourceId   string = apim.id
 output apimGatewayUrl string = apim.properties.gatewayUrl
+// output private id address of the APIM gateway
+output apimPrivateIp    string = apimPe.properties.customDnsConfigs[0].ipAddresses[0]
+

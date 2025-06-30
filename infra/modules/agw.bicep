@@ -14,7 +14,7 @@ param location string = resourceGroup().location
 // Common IDs
 // -----------------------------------------------------------------------------
 var appGwSubnetId = resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, 'appgateway-subnet')
-var publicIpName  = '${applicationGatewayName}-pip'
+//var publicIpName  = '${applicationGatewayName}-pip'
 
 // -----------------------------------------------------------------------------
 // Managed identity (needed by AGIC & diagnostics)
@@ -27,18 +27,18 @@ resource applicationGatewayIdentity 'Microsoft.ManagedIdentity/userAssignedIdent
 // -----------------------------------------------------------------------------
 // Public IP address — Standard SKU (required for *v2* gateways)
 // -----------------------------------------------------------------------------
-resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
-  name: publicIpName
-  location: location
-  sku: {
-    name: 'Standard'
-  }
-  properties: {
-    publicIPAddressVersion: 'IPv4'
-    publicIPAllocationMethod: 'Static'
-    idleTimeoutInMinutes: 4
-  }
-}
+// resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
+//   name: publicIpName
+//   location: location
+//   sku: {
+//     name: 'Standard'
+//   }
+//   properties: {
+//     publicIPAddressVersion: 'IPv4'
+//     publicIPAllocationMethod: 'Static'
+//     idleTimeoutInMinutes: 4
+//   }
+// }
 
 // -----------------------------------------------------------------------------
 // Application Gateway v2
@@ -70,12 +70,21 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     ]
 
     frontendIPConfigurations: [
+      // {
+      //   name: 'appGwPublicFrontendIp'
+      //   properties: {
+      //     publicIPAddress: {
+      //       id: publicIPAddress.id
+      //     }
+      //   }
+      // }
       {
-        name: 'appGwPublicFrontendIp'
+        name: 'appGwPrivateFrontendIp'
         properties: {
-          publicIPAddress: {
-            id: publicIPAddress.id
+          subnet: {
+            id: appGwSubnetId
           }
+          privateIPAllocationMethod: 'Dynamic' // or 'Static' with privateIPAddress
         }
       }
     ]
@@ -155,6 +164,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
 // -----------------------------------------------------------------------------
 // Outputs
 // -----------------------------------------------------------------------------
-output appGatewayId                  string = applicationGateway.id
+output appGatewayId                 string = applicationGateway.id
 output appGatewayIdentityId         string = applicationGatewayIdentity.id
-output publicIpId                   string = publicIPAddress.id
+//output publicIpId                   string = publicIPAddress.id
+output privateIpAddress             string = applicationGateway.properties.frontendIPConfigurations[1].properties.privateIPAddress

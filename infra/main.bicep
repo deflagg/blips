@@ -96,16 +96,42 @@ module dnsModule './modules/dns.bicep' = {
 }
 
 // --------------------------------------------------
-// Hub - VNet
+// DNS Forwarder VM (Azure DNS Resolver is available but too expensive ($180/month) for this demo)
 // --------------------------------------------------
-module dnsforwarderVMModule './modules/dnsforwarder-vm.bicep' = {
-  name: 'dnsforwarderVMDeployment'
+// module dnsforwarderVMModule './modules/dnsforwarder-vm.bicep' = {
+//   name: 'dnsforwarderVMDeployment'
+//   params: {
+//     projectName : projectName
+//     location    : location
+//     vnetId    : hubVnetModule.outputs.vnetId
+//   }
+// }
+
+// --------------------------------------------------
+// Azure Firewall
+// --------------------------------------------------
+module firewallModule './modules/firewall.bicep' = {
+  name: 'firewallDeployment'
   params: {
     projectName : projectName
+    vnetName    : hubVnetName
     location    : location
-    vnetId    : hubVnetModule.outputs.vnetId
+    firewallSubnetPrefix: '10.0.3.0/26'
+    ipAddress: apimModule.outputs.apimPrivateIp
   }
 }
+
+// --------------------------------------------------
+// VPN Gateway
+// --------------------------------------------------
+// module vpngwModule './modules/vpngw.bicep' = {
+//   name: 'vpngwDeployment'
+//   params: {
+//     projectName : projectName
+//     location    : location
+//     vnetName    : hubVnetName
+//   }
+// }
 
 
 // --------------------------------------------------
@@ -134,9 +160,10 @@ module dnsforwarderVMModule './modules/dnsforwarder-vm.bicep' = {
 //     location              : location
 //   }
 //   dependsOn: [
-//     spoke1VnetModule  //  Remember I uncommented this.
+//     spoke1VnetModule 
 //   ]
 // }
+
 
 // --------------------------------------------------
 // AKS
@@ -158,39 +185,39 @@ module dnsforwarderVMModule './modules/dnsforwarder-vm.bicep' = {
 // }
 
 // APIM sits in front of the App Gateway created by the AKS module.
-// module apimModule './modules/apim.bicep' = {
-//   name: 'apimDeployment'
-//   params: {
-//     apimName        : apimName
-//     location        : location
-//     publisherEmail  : publisherEmail
-//     publisherName   : publisherName
-//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
-//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', spoke1VnetName)
-//     subnetName      : apimSubnetName
-//     // Forward traffic from APIM to the App Gateway listener
-//     appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
-//   }
-//   dependsOn: [
-//     appGwModule // ensure App Gateway exists before APIM backend registration
-//   ]
-// }
+module apimModule './modules/apim.bicep' = {
+  name: 'apimDeployment'
+  params: {
+    apimName        : apimName
+    location        : location
+    publisherEmail  : publisherEmail
+    publisherName   : publisherName
+    // VNet containing both AKS & App Gateway (resource already created by aksModule)
+    vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', spoke1VnetName)
+    subnetName      : apimSubnetName
+    // Forward traffic from APIM to the App Gateway listener
+    appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
+  }
+  // dependsOn: [
+  //   appGwModule // ensure App Gateway exists before APIM backend registration
+  // ]
+}
 
 // --------------------------------------------------
 // App Service
 // --------------------------------------------------
-module web './modules/appsvc.bicep' = {
-  name: 'webAppModule'
-  params: {
-    location: location
-    appServicePlanName: '${projectName}-plan'
-    appServicePlanSkuName: 'B1'
-    siteName: 'react-${uniqueString(resourceGroup().id)}'
-    integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
-    defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
-    webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
-  }
-}
+// module web './modules/appsvc.bicep' = {
+//   name: 'webAppModule'
+//   params: {
+//     location: location
+//     appServicePlanName: '${projectName}-plan'
+//     appServicePlanSkuName: 'B1'
+//     siteName: 'react-${uniqueString(resourceGroup().id)}'
+//     integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
+//     defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
+//     webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
+//   }
+// }
 
 
 // --------------------------------------------------

@@ -89,7 +89,7 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
   parent: fwPolicy
   properties: {
     priority: 100
-    ruleCollection: [
+    ruleCollections: [
       {
         name: 'AGNATCollection'
         ruleCollectionType: 'FirewallPolicyNatRuleCollection'
@@ -99,8 +99,9 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
         }
         rules: [
           {
-            name: 'HttpHttpsToAppGw'
-            description: 'Forward public :80/443 -> internal App Gateway'
+            name: 'HttpHttpsToAPIM'
+            ruleType: 'NatRule'
+            description: 'Forward public :80/443 -> internal API Management'
             ipProtocols: [
               'TCP'
             ]
@@ -114,7 +115,7 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
               '80'
               '443'
             ]
-            translatedAddress: ipAddress
+            translatedAddress: ipAddress // private IP of the APIM
             translatedPort   : '0'  // keep original port (80/443)
           }
         ]
@@ -123,16 +124,7 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
   }
 }
 
-// Attach the policy to the firewall
-resource fwPolicyAssoc 'Microsoft.Network/azureFirewalls/firewallPolicies@2023-04-01' = {
-  name: 'policy'
-  parent: azureFirewall
-  properties: {
-    firewallPolicy: {
-      id: fwPolicy.id
-    }
-  }
-}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Outputs

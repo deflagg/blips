@@ -51,7 +51,7 @@ resource apim 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   properties: {
     publisherEmail: publisherEmail
     publisherName:  publisherName
-    publicNetworkAccess: 'Disabled'   // (optional) only allowed *after* PE exists
+    publicNetworkAccess: 'Enabled'   // (optional) only allowed *after* PE exists
   }
 }
 

@@ -56,7 +56,7 @@ resource azureFirewall 'Microsoft.Network/azureFirewalls@2023-04-01' = {
   properties: {
     sku: {
       name: 'AZFW_VNet'
-      tier: 'Standard'
+      tier: 'Basic'
     }
     ipConfigurations: [
       {

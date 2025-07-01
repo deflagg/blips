@@ -49,7 +49,7 @@ resource spokeToHub 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@20
     allowVirtualNetworkAccess: allowVirtualNetworkAccess
     allowForwardedTraffic:    allowForwardedTraffic
     allowGatewayTransit:      false     // rarely want spoke exporting back to hub
-    useRemoteGateways:        true
+    useRemoteGateways:        false
   }
 }
 

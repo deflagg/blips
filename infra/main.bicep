@@ -58,42 +58,42 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 // --------------------------------------------------
 // Spoke1 - VNet
 // --------------------------------------------------
-module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
-  name: 'spoke1VnetDeployment'
-  params: {
-    projectName : projectName
-    vnetName    : spoke1VnetName
-    location    : location
-  }
-}
+// module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
+//   name: 'spoke1VnetDeployment'
+//   params: {
+//     projectName : projectName
+//     vnetName    : spoke1VnetName
+//     location    : location
+//   }
+// }
 
-module vnetPeering './modules/peering.bicep' = {
-  name: 'hubSpokePeering'
-  params: {
-    hubVnetName:           hubVnetModule.outputs.vnetName
-    spokeVnetName:         spoke1VnetModule.outputs.vnetName
-    hubVnetId:             hubVnetModule.outputs.vnetId
-    spokeVnetId:           spoke1VnetModule.outputs.vnetId
-    hubToSpokePeeringName: 'hub-to-spoke1'
-    spokeToHubPeeringName: 'spoke1-to-hub'
-  }
-  dependsOn: [
-    hubVnetModule
-    spoke1VnetModule
-  ]
-}
+// module vnetPeering './modules/peering.bicep' = {
+//   name: 'hubSpokePeering'
+//   params: {
+//     hubVnetName:           hubVnetModule.outputs.vnetName
+//     spokeVnetName:         spoke1VnetModule.outputs.vnetName
+//     hubVnetId:             hubVnetModule.outputs.vnetId
+//     spokeVnetId:           spoke1VnetModule.outputs.vnetId
+//     hubToSpokePeeringName: 'hub-to-spoke1'
+//     spokeToHubPeeringName: 'spoke1-to-hub'
+//   }
+//   dependsOn: [
+//     hubVnetModule
+//     spoke1VnetModule
+//   ]
+// }
 
 
 // -----------------------------------------------------------------------------
 //  MODULE: Public DNS Zone (Zone 1)
 // -----------------------------------------------------------------------------
-module dnsModule './modules/dns.bicep' = {
-  name: 'privateDnsDeployment'
-  params: {
-    dnsZoneName: dnsZoneName          // existing param
-    vnetId     : hubVnetModule.outputs.vnetId
-  }
-}
+// module dnsModule './modules/dns.bicep' = {
+//   name: 'privateDnsDeployment'
+//   params: {
+//     dnsZoneName: dnsZoneName          // existing param
+//     vnetId     : hubVnetModule.outputs.vnetId
+//   }
+// }
 
 // --------------------------------------------------
 // DNS Forwarder VM (Azure DNS Resolver is available but too expensive ($180/month) for this demo)
@@ -117,7 +117,7 @@ module firewallModule './modules/firewall.bicep' = {
     vnetName    : hubVnetName
     location    : location
     firewallSubnetPrefix: '10.0.3.0/26'
-    ipAddress: apimModule.outputs.apimPrivateIp
+    ipAddress: '10.1.1.1' // apimModule.outputs.apimPrivateIp
   }
 }
 
@@ -185,23 +185,23 @@ module firewallModule './modules/firewall.bicep' = {
 // }
 
 // APIM sits in front of the App Gateway created by the AKS module.
-module apimModule './modules/apim.bicep' = {
-  name: 'apimDeployment'
-  params: {
-    apimName        : apimName
-    location        : location
-    publisherEmail  : publisherEmail
-    publisherName   : publisherName
-    // VNet containing both AKS & App Gateway (resource already created by aksModule)
-    vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', spoke1VnetName)
-    subnetName      : apimSubnetName
-    // Forward traffic from APIM to the App Gateway listener
-    appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
-  }
-  // dependsOn: [
-  //   appGwModule // ensure App Gateway exists before APIM backend registration
-  // ]
-}
+// module apimModule './modules/apim.bicep' = {
+//   name: 'apimDeployment'
+//   params: {
+//     apimName        : apimName
+//     location        : location
+//     publisherEmail  : publisherEmail
+//     publisherName   : publisherName
+//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
+//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', spoke1VnetName)
+//     subnetName      : apimSubnetName
+//     // Forward traffic from APIM to the App Gateway listener
+//     appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
+//   }
+//   // dependsOn: [
+//   //   appGwModule // ensure App Gateway exists before APIM backend registration
+//   // ]
+// }
 
 // --------------------------------------------------
 // App Service

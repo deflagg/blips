@@ -65,13 +65,13 @@ resource hubVnet 'Microsoft.Network/virtualNetworks@2024-07-01' = {
       {
         name: 'AzureFirewallSubnet'         // subnet for the DNS forwarder VM
         properties: {
-          addressPrefix: '10.1.0.64/24'
+          addressPrefix: '10.1.1.0/24'
         }
       }
       {
         name: 'apim-subnet'
         properties: {
-          addressPrefix: '10.1.1.0/24'
+          addressPrefix: '10.1.2.0/24'
           networkSecurityGroup: {
             id: nsgApim.id
           }

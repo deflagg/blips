@@ -116,7 +116,6 @@ module firewallModule './modules/firewall.bicep' = {
     projectName : projectName
     vnetName    : hubVnetName
     location    : location
-    firewallSubnetPrefix: '10.0.3.0/26'
     ipAddress: apimModule.outputs.apimPrivateIp
   }
 }

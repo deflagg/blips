@@ -7,30 +7,24 @@ param location string = resourceGroup().location
 @description('Name of the virtual network that will host Azure Firewall.')
 param vnetName string
 
-@description('Address prefix for the AzureFirewallSubnet.')
-param firewallSubnetPrefix string = '10.0.3.0/26'
 
 @description('IPv4 address of target.  Used as the DNAT translation target.')
 param ipAddress string
 
 var firewallName = 'azfw-${projectName}'
 var fwPipName    = '${firewallName}-pip'
-var fwSubnetName = 'l4firewall'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Networking - ensure the required subnet exists inside the hub VNet
 // ─────────────────────────────────────────────────────────────────────────────
-resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' existing = {
+resource vnet 'Microsoft.Network/virtualNetworks@2024-07-01' existing = {
   name: vnetName
 }
 
-resource firewallSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-04-01' = {
+// Get subnet for the Azure Firewall
+resource firewallSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = {
+  name: 'AzureFirewallSubnet' // this exact name is required
   parent: vnet
-  name: fwSubnetName
-  properties: {
-    addressPrefix: firewallSubnetPrefix
-    delegations: []
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

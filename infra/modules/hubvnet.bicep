@@ -14,6 +14,32 @@ param gatewaySubnetPrefix string = '10.1.0.0/27'
 @description('Deployment location.')
 param location string = resourceGroup().location
 
+// -------------------------
+// Network-security group for APIM
+// -------------------------
+resource nsgApim 'Microsoft.Network/networkSecurityGroups@2024-03-01' = {
+  name: 'nsg-${projectName}-apim'
+  location: location
+  // Default rules are fine for now; add custom rules later if you need them
+  properties: {
+    securityRules: [
+      {
+        name: 'Allow-APIM-3443-Inbound'
+        properties: {
+          priority: 1001
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '3443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
+    ]
+  }
+}
+
 resource hubVnet 'Microsoft.Network/virtualNetworks@2024-07-01' = {
   name: hubVnetName
   location: location
@@ -37,9 +63,21 @@ resource hubVnet 'Microsoft.Network/virtualNetworks@2024-07-01' = {
         }
       }
       {
-        name: 'l4firewall'         // subnet for the DNS forwarder VM
+        name: 'AzureFirewallSubnet'         // subnet for the DNS forwarder VM
+        properties: {
+          addressPrefix: '10.1.0.64/24'
+        }
+      }
+      {
+        name: 'apim-subnet'
         properties: {
           addressPrefix: '10.1.1.0/24'
+          networkSecurityGroup: {
+            id: nsgApim.id
+          }
+          delegations: []
+          privateEndpointNetworkPolicies: 'Disabled'
+          privateLinkServiceNetworkPolicies: 'Enabled'
         }
       }
     ]

@@ -139,7 +139,7 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
               '443'
             ]
             translatedAddress: targetIpAddress // private IP of the APIM
-            translatedPort   : '0'  // keep original port (80/443)
+            translatedPort   : '443'
           }
         ]
       }

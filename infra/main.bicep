@@ -118,6 +118,9 @@ module firewallModule './modules/firewall.bicep' = {
     location    : location
     targetIpAddress   : '10.10.10.10' // apimModule.outputs.apimPrivateIp
   }
+  dependsOn: [
+    hubVnetModule
+  ]
 }
 
 // --------------------------------------------------

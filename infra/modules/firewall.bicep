@@ -9,7 +9,7 @@ param vnetName string
 
 
 @description('IPv4 address of target.  Used as the DNAT translation target.')
-param ipAddress string
+param targetIpAddress string
 
 var firewallName = 'azfw-${projectName}'
 var fwPipName    = '${firewallName}-pip'
@@ -138,7 +138,7 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
               '80'
               '443'
             ]
-            translatedAddress: ipAddress // private IP of the APIM
+            translatedAddress: targetIpAddress // private IP of the APIM
             translatedPort   : '0'  // keep original port (80/443)
           }
         ]

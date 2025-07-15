@@ -50,7 +50,7 @@ module hubVnetModule './modules/hubvnet.bicep' = {
   name: 'hubVnetDeployment'
   params: {
     projectName : projectName
-    hubVnetName    : hubVnetName
+    hubVnetName : hubVnetName
     location    : location
   }
 }
@@ -116,7 +116,7 @@ module firewallModule './modules/firewall.bicep' = {
     projectName : projectName
     vnetName    : hubVnetName
     location    : location
-    ipAddress   : '10.10.10.10' // apimModule.outputs.apimPrivateIp
+    targetIpAddress   : '10.10.10.10' // apimModule.outputs.apimPrivateIp
   }
 }
 

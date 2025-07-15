@@ -69,9 +69,15 @@ resource hubVnet 'Microsoft.Network/virtualNetworks@2024-07-01' = {
         }
       }
       {
-        name: 'apim-subnet'
+        name: 'AzureFirewallManagementSubnet'  // New: required for Basic SKU
         properties: {
           addressPrefix: '10.1.2.0/24'
+        }
+      }
+      {
+        name: 'apim-subnet'
+        properties: {
+          addressPrefix: '10.1.3.0/24'
           networkSecurityGroup: {
             id: nsgApim.id
           }

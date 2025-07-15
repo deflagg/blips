@@ -27,11 +27,29 @@ resource firewallSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' e
   parent: vnet
 }
 
+// New: Get subnet for the Azure Firewall management plane (required for Basic SKU)
+resource firewallMgmtSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = {
+  name: 'AzureFirewallManagementSubnet' // this exact name is required
+  parent: vnet
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Public IP for the firewall
+// Public IP for the firewall (data plane)
 // ─────────────────────────────────────────────────────────────────────────────
 resource firewallPip 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
   name: fwPipName
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+  }
+}
+
+// New: Public IP for the firewall management plane (required for Basic SKU)
+resource firewallMgmtPip 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
+  name: '${firewallName}-mgmt-pip'
   location: location
   sku: {
     name: 'Standard'
@@ -65,6 +83,17 @@ resource azureFirewall 'Microsoft.Network/azureFirewalls@2023-04-01' = {
         }
       }
     ]
+    managementIpConfiguration: {
+      name: 'management'
+      properties: {
+        subnet: {
+          id: firewallMgmtSubnet.id
+        }
+        publicIPAddress: {
+          id: firewallMgmtPip.id
+        }
+      }
+    }
     // No forced tunnelling; routes stay in the VNet
   }
 }

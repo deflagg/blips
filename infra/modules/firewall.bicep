@@ -124,7 +124,7 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
           {
             name: 'HttpHttpsToAPIM'
             ruleType: 'NatRule'
-            description: 'Forward public :80/443 -> internal API Management'
+            description: 'Forward public :443 -> internal API Management'
             ipProtocols: [
               'TCP'
             ]
@@ -135,7 +135,6 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
               firewallPip.properties.ipAddress
             ]
             destinationPorts: [
-              '80'
               '443'
             ]
             translatedAddress: targetIpAddress // private IP of the APIM

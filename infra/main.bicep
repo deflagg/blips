@@ -116,7 +116,7 @@ module firewallModule './modules/firewall.bicep' = {
     projectName : projectName
     vnetName    : hubVnetName
     location    : location
-    targetIpAddress   : '10.10.10.10' // apimModule.outputs.apimPrivateIp
+    targetIpAddress   : apimModule.outputs.apimPrivateIp
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
   dependsOn: [
@@ -188,23 +188,23 @@ module firewallModule './modules/firewall.bicep' = {
 // }
 
 // APIM sits in front of the App Gateway created by the AKS module.
-// module apimModule './modules/apim.bicep' = {
-//   name: 'apimDeployment'
-//   params: {
-//     apimName        : apimName
-//     location        : location
-//     publisherEmail  : publisherEmail
-//     publisherName   : publisherName
-//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
-//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', hubVnetName)
-//     subnetName      : apimSubnetName
-//     // Forward traffic from APIM to the App Gateway listener
-//     appGatewayFqdn  : applicationGatewayName // adjust if you use a different DNS label
-//   }
-//   // dependsOn: [
-//   //   appGwModule // ensure App Gateway exists before APIM backend registration
-//   // ]
-// }
+module apimModule './modules/apim.bicep' = {
+  name: 'apimDeployment'
+  params: {
+    apimName        : apimName
+    location        : location
+    publisherEmail  : publisherEmail
+    publisherName   : publisherName
+    // VNet containing both AKS & App Gateway (resource already created by aksModule)
+    vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', hubVnetName)
+    subnetName      : apimSubnetName
+    // Forward traffic from APIM to the App Gateway listener
+    appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
+  }
+  // dependsOn: [
+  //   appGwModule // ensure App Gateway exists before APIM backend registration
+  // ]
+}
 
 // --------------------------------------------------
 // App Service

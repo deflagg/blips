@@ -108,6 +108,11 @@ resource azureFirewall 'Microsoft.Network/azureFirewalls@2023-04-01' = {
 resource fwPolicy 'Microsoft.Network/firewallPolicies@2023-05-01' = {
   name: '${firewallName}-policy'
   location: location
+  properties: {
+    sku: {
+      tier: 'Basic'
+    }
+  }
 }
 
 resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2023-05-01' = {

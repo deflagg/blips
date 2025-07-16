@@ -80,7 +80,7 @@ resource apimPe 'Microsoft.Network/privateEndpoints@2024-07-01' = {
         name: 'apimGateway'
         properties: {
           privateLinkServiceId: apim.id
-          groupIds: [ 'gateway' ]     // APIM only supports the 'gateway' sub-resource
+          groupIds: [ 'Gateway' ]     // APIM only supports the 'gateway' sub-resource
         }
       }
     ]

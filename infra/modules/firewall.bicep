@@ -168,34 +168,18 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
       {
         category: 'AZFWNatRule'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 5
-        }
       }
       {
         category: 'AZFWNatRuleAggregation'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 5
-        }
       }
       {
         category: 'AZFWNetworkRule'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 5
-        }
       }
       {
         category: 'AZFWNetworkRuleAggregation'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 5
-        }
       }
       // Add more categories if needed (e.g., 'AZFWDnsQuery' for DNS proxy if enabled)
     ]
@@ -203,10 +187,6 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 30
-        }
       }
     ]
   }

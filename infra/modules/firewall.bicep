@@ -94,6 +94,9 @@ resource azureFirewall 'Microsoft.Network/azureFirewalls@2023-04-01' = {
         }
       }
     }
+    firewallPolicy: {
+      id: fwPolicy.id
+    }
     // No forced tunnelling; routes stay in the VNet
   }
 }

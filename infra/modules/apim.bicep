@@ -26,6 +26,7 @@ param publisherName        string                                // Publisher na
 // -------------------------
 param vnetResourceId       string                                // resourceId of the VNet hosting both APIM & App Gateway
 param subnetName           string                                // Name of the *dedicated* subnet for APIM (must /29 or larger)
+param apimStaticIp         string                                // Static IP address for the APIM private endpoint (PE)
 
 // -------------------------
 // Backend – Application Gateway
@@ -84,6 +85,16 @@ resource apimPe 'Microsoft.Network/privateEndpoints@2024-07-01' = {
         }
       }
     ]
+    ipConfigurations: [
+      {
+        name: 'staticIpConfig'
+        properties: {
+          groupId: 'Gateway'
+          memberName: 'Gateway'
+          privateIPAddress: apimStaticIp
+        }
+      }
+    ]
   }
 }
 
@@ -101,7 +112,7 @@ resource apiPrivARecord 'Microsoft.Network/privateDnsZones/A@2024-06-01' = {
     ttl: 300
     aRecords: [
       {
-        ipv4Address: apimPe.properties.customDnsConfigs[0].ipAddresses[0]
+        ipv4Address: apimStaticIp //apimPe.properties.customDnsConfigs[0].ipAddresses[0]
       }
     ]
   }
@@ -115,5 +126,5 @@ output apimServiceName  string = apim.name
 output apimResourceId   string = apim.id
 output apimGatewayUrl string = apim.properties.gatewayUrl
 // output private id address of the APIM gateway
-output apimPrivateIp    string = apimPe.properties.customDnsConfigs[0].ipAddresses[0]
+//output apimPrivateIp    string = apimPe.properties.customDnsConfigs[0].ipAddresses[0]
 

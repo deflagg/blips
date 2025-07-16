@@ -28,6 +28,8 @@ param aksClusterName         string = 'aks-${projectName}'
 param dnsPrefix              string =  projectName
 param dnsZoneName            string = 'priv.${dnsPrefix}.com'
 
+var apimStaticIp             string = '10.1.3.4'
+
 // --------------------------------------------------
 // APIM – extra parameters (only what the module needs)
 // --------------------------------------------------
@@ -116,7 +118,7 @@ module firewallModule './modules/firewall.bicep' = {
     projectName : projectName
     vnetName    : hubVnetName
     location    : location
-    targetIpAddress   : apimModule.outputs.apimPrivateIp
+    targetIpAddress   : apimStaticIp //apimModule.outputs.apimPrivateIp
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
   dependsOn: [
@@ -200,6 +202,7 @@ module apimModule './modules/apim.bicep' = {
     subnetName      : apimSubnetName
     // Forward traffic from APIM to the App Gateway listener
     appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
+    apimStaticIp    : apimStaticIp // Static IP for the APIM private endpoint (PE)
   }
   // dependsOn: [
   //   appGwModule // ensure App Gateway exists before APIM backend registration

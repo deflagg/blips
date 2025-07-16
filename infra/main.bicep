@@ -117,6 +117,7 @@ module firewallModule './modules/firewall.bicep' = {
     vnetName    : hubVnetName
     location    : location
     targetIpAddress   : '10.10.10.10' // apimModule.outputs.apimPrivateIp
+    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
   dependsOn: [
     hubVnetModule
@@ -221,6 +222,17 @@ module firewallModule './modules/firewall.bicep' = {
 //   }
 // }
 
+
+// --------------------------------------------------
+// Log Analytics Workspace
+// --------------------------------------------------
+module logAnalyticsModule './modules/loganalytics.bicep' = {
+  name: 'logAnalyticsDeployment'
+  params: {
+    projectName: projectName
+    location: location
+  }
+}
 
 // --------------------------------------------------
 // Outputs

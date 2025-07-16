@@ -7,9 +7,11 @@ param location string = resourceGroup().location
 @description('Name of the virtual network that will host Azure Firewall.')
 param vnetName string
 
-
 @description('IPv4 address of target.  Used as the DNAT translation target.')
 param targetIpAddress string
+
+@description('Resource ID of the Log Analytics Workspace to send diagnostics to.')
+param logAnalyticsWorkspaceId string
 
 var firewallName = 'azfw-${projectName}'
 var fwPipName    = '${firewallName}-pip'
@@ -149,6 +151,62 @@ resource fwPolicyRg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@202
             translatedPort   : '443'
           }
         ]
+      }
+    ]
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Diagnostic Settings for Azure Firewall (send logs/metrics to Log Analytics)
+// ─────────────────────────────────────────────────────────────────────────────
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${firewallName}-diagnostics'
+  scope: azureFirewall
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'AZFWNatRule'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 5
+        }
+      }
+      {
+        category: 'AZFWNatRuleAggregation'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 5
+        }
+      }
+      {
+        category: 'AZFWNetworkRule'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 5
+        }
+      }
+      {
+        category: 'AZFWNetworkRuleAggregation'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 5
+        }
+      }
+      // Add more categories if needed (e.g., 'AZFWDnsQuery' for DNS proxy if enabled)
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 30
+        }
       }
     ]
   }

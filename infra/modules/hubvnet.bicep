@@ -24,14 +24,14 @@ resource nsgApim 'Microsoft.Network/networkSecurityGroups@2024-03-01' = {
   properties: {
     securityRules: [
       {
-        name: 'Allow-APIM-3443-Inbound'
+        name: 'Allow-APIM-443-Inbound'
         properties: {
           priority: 1001
           direction: 'Inbound'
           access: 'Allow'
           protocol: 'Tcp'
           sourcePortRange: '*'
-          destinationPortRange: '3443'
+          destinationPortRange: '443'
           sourceAddressPrefix: '*'
           destinationAddressPrefix: '*'
         }

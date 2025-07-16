@@ -87,13 +87,13 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 // -----------------------------------------------------------------------------
 //  MODULE: Public DNS Zone (Zone 1)
 // -----------------------------------------------------------------------------
-// module dnsModule './modules/dns.bicep' = {
-//   name: 'privateDnsDeployment'
-//   params: {
-//     dnsZoneName: dnsZoneName          // existing param
-//     vnetId     : hubVnetModule.outputs.vnetId
-//   }
-// }
+module dnsModule './modules/dns.bicep' = {
+  name: 'privateDnsDeployment'
+  params: {
+    dnsZoneName: dnsZoneName          // existing param
+    vnetId     : hubVnetModule.outputs.vnetId
+  }
+}
 
 // --------------------------------------------------
 // DNS Forwarder VM (Azure DNS Resolver is available but too expensive ($180/month) for this demo)

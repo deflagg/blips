@@ -60,30 +60,30 @@ module hubVnetModule './modules/hubvnet.bicep' = {
 // --------------------------------------------------
 // Spoke1 - VNet
 // --------------------------------------------------
-// module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
-//   name: 'spoke1VnetDeployment'
-//   params: {
-//     projectName : projectName
-//     vnetName    : spoke1VnetName
-//     location    : location
-//   }
-// }
+module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
+  name: 'spoke1VnetDeployment'
+  params: {
+    projectName : projectName
+    vnetName    : spoke1VnetName
+    location    : location
+  }
+}
 
-// module vnetPeering './modules/peering.bicep' = {
-//   name: 'hubSpokePeering'
-//   params: {
-//     hubVnetName:           hubVnetModule.outputs.vnetName
-//     spokeVnetName:         spoke1VnetModule.outputs.vnetName
-//     hubVnetId:             hubVnetModule.outputs.vnetId
-//     spokeVnetId:           spoke1VnetModule.outputs.vnetId
-//     hubToSpokePeeringName: 'hub-to-spoke1'
-//     spokeToHubPeeringName: 'spoke1-to-hub'
-//   }
-//   dependsOn: [
-//     hubVnetModule
-//     spoke1VnetModule
-//   ]
-// }
+module vnetPeering './modules/peering.bicep' = {
+  name: 'hubSpokePeering'
+  params: {
+    hubVnetName:           hubVnetModule.outputs.vnetName
+    spokeVnetName:         spoke1VnetModule.outputs.vnetName
+    hubVnetId:             hubVnetModule.outputs.vnetId
+    spokeVnetId:           spoke1VnetModule.outputs.vnetId
+    hubToSpokePeeringName: 'hub-to-spoke1'
+    spokeToHubPeeringName: 'spoke1-to-hub'
+  }
+  dependsOn: [
+    hubVnetModule
+    spoke1VnetModule
+  ]
+}
 
 
 // -----------------------------------------------------------------------------
@@ -112,19 +112,19 @@ module dnsModule './modules/dns.bicep' = {
 // --------------------------------------------------
 // Azure Firewall
 // --------------------------------------------------
-module firewallModule './modules/firewall.bicep' = {
-  name: 'firewallDeployment'
-  params: {
-    projectName : projectName
-    vnetName    : hubVnetName
-    location    : location
-    targetIpAddress   : apimStaticIp //apimModule.outputs.apimPrivateIp
-    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
-  }
-  dependsOn: [
-    hubVnetModule
-  ]
-}
+// module firewallModule './modules/firewall.bicep' = {
+//   name: 'firewallDeployment'
+//   params: {
+//     projectName : projectName
+//     vnetName    : hubVnetName
+//     location    : location
+//     targetIpAddress   : apimStaticIp //apimModule.outputs.apimPrivateIp
+//     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
+//   }
+//   dependsOn: [
+//     hubVnetModule
+//   ]
+// }
 
 // --------------------------------------------------
 // VPN Gateway
@@ -142,89 +142,89 @@ module firewallModule './modules/firewall.bicep' = {
 // --------------------------------------------------
 // ACR
 // --------------------------------------------------
-// module acrModule './modules/acr.bicep' = {
-//   name: 'acrDeployment'
-//   params: {
-//     projectName:           projectName          // already defined in main.bicep
-//     location:              location
-//     containerRegistryName: containerRegistryName
-//     containerRegistrySku:  containerRegistrySku // if you expose this param
-//   }
-// }
+module acrModule './modules/acr.bicep' = {
+  name: 'acrDeployment'
+  params: {
+    projectName:           projectName          // already defined in main.bicep
+    location:              location
+    containerRegistryName: containerRegistryName
+    containerRegistrySku:  containerRegistrySku // if you expose this param
+  }
+}
 
 
 // --------------------------------------------------
 // App Gateway
 // --------------------------------------------------
-// module appGwModule './modules/agw.bicep' = {
-//   name: 'appGwDeployment'
-//   params: {
-//     projectName           : projectName
-//     applicationGatewayName: applicationGatewayName
-//     vnetName              : spoke1VnetName
-//     location              : location
-//   }
-//   dependsOn: [
-//     spoke1VnetModule 
-//   ]
-// }
+module appGwModule './modules/agw.bicep' = {
+  name: 'appGwDeployment'
+  params: {
+    projectName           : projectName
+    applicationGatewayName: applicationGatewayName
+    vnetName              : spoke1VnetName
+    location              : location
+  }
+  dependsOn: [
+    spoke1VnetModule 
+  ]
+}
 
 
 // --------------------------------------------------
 // AKS
 // --------------------------------------------------
-// module aksModule './modules/aks.bicep' = {
-//   name: 'aksDeployment'
-//   params: {
-//     projectName            : projectName
-//     location               : location
-//     containerRegistryId    : acrModule.outputs.containerRegistryId
-//     vnetId                 : spoke1VnetModule.outputs.vnetId
-//     aksSubnetId            : spoke1VnetModule.outputs.aksSubnetId
-//     appGatewaySubnetId     : spoke1VnetModule.outputs.appGatewaySubnetId
-//     appGatewayId           : appGwModule.outputs.appGatewayId
-//     appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
-//     aksClusterName         : aksClusterName
-//     dnsPrefix              : dnsPrefix
-//   }
-// }
+module aksModule './modules/aks.bicep' = {
+  name: 'aksDeployment'
+  params: {
+    projectName            : projectName
+    location               : location
+    containerRegistryId    : acrModule.outputs.containerRegistryId
+    vnetId                 : spoke1VnetModule.outputs.vnetId
+    aksSubnetId            : spoke1VnetModule.outputs.aksSubnetId
+    appGatewaySubnetId     : spoke1VnetModule.outputs.appGatewaySubnetId
+    appGatewayId           : appGwModule.outputs.appGatewayId
+    appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
+    aksClusterName         : aksClusterName
+    dnsPrefix              : dnsPrefix
+  }
+}
 
 // APIM sits in front of the App Gateway created by the AKS module.
-module apimModule './modules/apim.bicep' = {
-  name: 'apimDeployment'
-  params: {
-    apimName        : apimName
-    location        : location
-    publisherEmail  : publisherEmail
-    publisherName   : publisherName
-    // VNet containing both AKS & App Gateway (resource already created by aksModule)
-    vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', hubVnetName)
-    subnetName      : apimSubnetName
-    // Forward traffic from APIM to the App Gateway listener
-    appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
-    apimStaticIp    : apimStaticIp // Static IP for the APIM private endpoint (PE)
-  }
-  dependsOn: [
-    //appGwModule // ensure App Gateway exists before APIM backend registration
-    dnsModule
-  ]
-}
+// module apimModule './modules/apim.bicep' = {
+//   name: 'apimDeployment'
+//   params: {
+//     apimName        : apimName
+//     location        : location
+//     publisherEmail  : publisherEmail
+//     publisherName   : publisherName
+//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
+//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', hubVnetName)
+//     subnetName      : apimSubnetName
+//     // Forward traffic from APIM to the App Gateway listener
+//     appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
+//     apimStaticIp    : apimStaticIp // Static IP for the APIM private endpoint (PE)
+//   }
+//   dependsOn: [
+//     //appGwModule // ensure App Gateway exists before APIM backend registration
+//     dnsModule
+//   ]
+// }
 
 // --------------------------------------------------
 // App Service
 // --------------------------------------------------
-// module web './modules/appsvc.bicep' = {
-//   name: 'webAppModule'
-//   params: {
-//     location: location
-//     appServicePlanName: '${projectName}-plan'
-//     appServicePlanSkuName: 'B1'
-//     siteName: 'react-${uniqueString(resourceGroup().id)}'
-//     integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
-//     defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
-//     webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
-//   }
-// }
+module web './modules/appsvc.bicep' = {
+  name: 'webAppModule'
+  params: {
+    location: location
+    appServicePlanName: '${projectName}-plan'
+    appServicePlanSkuName: 'B1'
+    siteName: 'react-${uniqueString(resourceGroup().id)}'
+    integrationSubnetId: spoke1VnetModule.outputs.appSvcIntegrationSubnetId
+    defaultSubnetId: spoke1VnetModule.outputs.aksSubnetId
+    webAppPrivateDnsZoneId: dnsModule.outputs.websitesPrivZoneResourceId
+  }
+}
 
 
 // --------------------------------------------------

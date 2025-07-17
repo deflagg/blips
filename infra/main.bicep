@@ -204,9 +204,10 @@ module apimModule './modules/apim.bicep' = {
     appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
     apimStaticIp    : apimStaticIp // Static IP for the APIM private endpoint (PE)
   }
-  // dependsOn: [
-  //   appGwModule // ensure App Gateway exists before APIM backend registration
-  // ]
+  dependsOn: [
+    //appGwModule // ensure App Gateway exists before APIM backend registration
+    dnsModule
+  ]
 }
 
 // --------------------------------------------------

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 function BlipFeed() {
+  console.log('BlipFeed component is mounting/rendering');
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-function NewsFeed() {
+function BlipFeed() {
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

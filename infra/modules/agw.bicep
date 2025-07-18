@@ -167,4 +167,4 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
 output appGatewayId                 string = applicationGateway.id
 output appGatewayIdentityId         string = applicationGatewayIdentity.id
 output publicIpId                   string = publicIPAddress.id
-output privateIpAddress             string = applicationGateway.properties.frontendIPConfigurations[1].properties.privateIPAddress
+//output privateIpAddress             string = applicationGateway.properties.frontendIPConfigurations[1].properties.privateIPAddress

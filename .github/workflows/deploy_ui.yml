@@ -7,6 +7,13 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+  push:
+    branches:
+      - main
+    paths:
+      - 'ui/**'
+      - '.github/workflows/deploy_ui.yml'
+
 # 🔑 Allow OIDC token issuance
 permissions:
   id-token: write      # needed for azure/login OIDC flow

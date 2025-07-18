@@ -78,15 +78,15 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
           }
         }
       }
-      {
-        name: 'appGwPrivateFrontendIp'
-        properties: {
-          subnet: {
-            id: appGwSubnetId
-          }
-          privateIPAllocationMethod: 'Dynamic' // or 'Static' with privateIPAddress
-        }
-      }
+      // {
+      //   name: 'appGwPrivateFrontendIp'
+      //   properties: {
+      //     subnet: {
+      //       id: appGwSubnetId
+      //     }
+      //     privateIPAllocationMethod: 'Dynamic' // or 'Static' with privateIPAddress
+      //   }
+      // }
     ]
 
     frontendPorts: [

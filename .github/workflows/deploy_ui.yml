@@ -30,13 +30,15 @@ jobs:
         az version --query '"azure-cli"'   # optional, shows current version
         az upgrade --yes                   # brings CLI + extensions to latest GA
     
+    - name: Upgrade Azure CLI (if needed)
+      run: |
+        az version --query '"azure-cli"'   # optional, shows current version
+        az upgrade --yes                   # brings CLI + extensions to latest GA
+    
     - name: Helm tool installer
-      uses: Azure/setup-helm@v3
+      uses: Azure/setup-helm@v3.5
       with:
-        # Version of helm
-        version: # default is latest
-        # GitHub token. Required only if 'version' == 'latest'
-        token: # optional
+        version: latest
 
     # (Optional) Sign-in so Az cmdlets inside deploy.ps1 can touch Azure
     - name: Azure login

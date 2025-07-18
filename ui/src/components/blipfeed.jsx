@@ -52,4 +52,4 @@ function BlipFeed() {
   );
 }
 
-export default NewsFeed;
+export default BlipFeed;

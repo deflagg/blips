@@ -6,7 +6,8 @@ import BlipFeed from './components/blipfeed';  // Import the new component
 
 function App() {
   const [count, setCount] = useState(0)
-
+  console.log('App is rendering');  // Add this to confirm
+  
   return (
     <>
       <div>

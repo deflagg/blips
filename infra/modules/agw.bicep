@@ -109,8 +109,8 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'myHTTPSetting'
         properties: {
-          port: 8080
-          protocol: 'Http'
+          port: 443
+          protocol: 'Https'
           cookieBasedAffinity: 'Disabled'
           pickHostNameFromBackendAddress: false
           requestTimeout: 20
@@ -128,7 +128,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
           frontendPort: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
           }
-          protocol: 'Http'
+          protocol: 'Https'
           requireServerNameIndication: false
         }
       }

@@ -46,7 +46,7 @@ service:
   # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
-  port: 8080
+  port: 443
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
@@ -64,7 +64,7 @@ ingress:
           pathType: ImplementationSpecific
           backend:
             serviceName: blips-blipfeed
-            servicePort: 8080
+            servicePort: 443
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
@@ -86,13 +86,13 @@ resources: {}
 livenessProbe:
   httpGet:
     path: /health/live
-    port: 8080
+    port: 443
   initialDelaySeconds: 15
   periodSeconds: 5
 readinessProbe:
   httpGet:
     path: /health/ready
-    port: 8080
+    port: 443
   initialDelaySeconds: 15
   periodSeconds: 5
 

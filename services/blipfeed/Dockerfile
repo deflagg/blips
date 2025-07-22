@@ -18,7 +18,7 @@ WORKDIR /app
 COPY --from=build /app .
 
 # Expose the port the application runs on
-EXPOSE 8080
+EXPOSE 443
 
 # Set the entry point for the container
 ENTRYPOINT ["dotnet", "blipfeed.dll"]

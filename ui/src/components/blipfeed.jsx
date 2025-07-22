@@ -11,13 +11,14 @@ function BlipFeed() {
     const fetchFeed = async () => {
       try {
         console.log('Fetching feed from http://blipfeed.blips.service/weatherforecast');
-        const response = await fetch('http://blipfeed.blips.service/weatherforecast');
+        const response = await fetch('https://blipfeed.blips.service/weatherforecast');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         setFeed(data);
       } catch (err) {
+        console.error('Error fetching feed Dennis style:', err);
         setError(err.message);
       } finally {
         setLoading(false);

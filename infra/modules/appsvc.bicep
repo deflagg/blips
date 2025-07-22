@@ -60,16 +60,20 @@ resource appPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
 // --------------------
 // Web App
 // --------------------
-resource webApp 'Microsoft.Web/sites@2024-04-01' = {
+resource webApp 'Microsoft.Web/sites@2024-11-01' = {
   name: siteName
   location: location
   kind: 'app,linux'
   identity: enableIdentity ? {
     type: 'SystemAssigned'
   } : null
+
   properties: {
     serverFarmId: appPlan.id
     httpsOnly: true
+    outboundVnetRouting: {  // New object for VNet routing configs
+        imagePullTraffic: true  // Enables image pulls over VNet (formerly vnetImagePullEnabled)
+    }
     siteConfig: {
       linuxFxVersion: 'NODE|18-lts'
       http20Enabled: true
@@ -90,7 +94,7 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   tags: tags
 }
 
-resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2024-04-01' = {
+resource vnetIntegration 'Microsoft.Web/sites/networkConfig@2024-11-01' = {
   name: 'virtualNetwork'
   parent: webApp
   properties: {

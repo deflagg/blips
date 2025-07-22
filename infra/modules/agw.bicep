@@ -91,9 +91,9 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
 
     frontendPorts: [
       {
-        name: 'port_80'
+        name: 'port_443'
         properties: {
-          port: 80
+          port: 443
         }
       }
     ]
@@ -126,7 +126,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
             id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_80')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
           }
           protocol: 'Http'
           requireServerNameIndication: false

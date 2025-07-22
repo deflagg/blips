@@ -71,8 +71,10 @@ resource webApp 'Microsoft.Web/sites@2024-11-01' = {
   properties: {
     serverFarmId: appPlan.id
     httpsOnly: true
+    publicNetworkAccess: 'Enabled' // (optional) only allowed *after* PE exists
     outboundVnetRouting: {  // New object for VNet routing configs
         imagePullTraffic: true  // Enables image pulls over VNet (formerly vnetImagePullEnabled)
+        allTraffic: true  // Enables all outbound traffic over VNet
     }
     siteConfig: {
       linuxFxVersion: 'NODE|18-lts'

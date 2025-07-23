@@ -51,6 +51,13 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
   name: keyVaultName
 }
 
+// Optional: Create PFX secret if provided
+resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' existing =  {
+  parent: keyVault
+  name: pfxSecretName
+}
+
+
 // -----------------------------------------------------------------------------
 // Application Gateway v2
 // -----------------------------------------------------------------------------
@@ -191,11 +198,6 @@ resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-// Optional: Create PFX secret if provided
-resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' existing =  {
-  parent: keyVault
-  name: pfxSecretName
-}
 
 // -----------------------------------------------------------------------------
 // Outputs

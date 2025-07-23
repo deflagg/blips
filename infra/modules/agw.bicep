@@ -57,6 +57,8 @@ resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' existi
   name: pfxSecretName
 }
 
+var pfxSecretVersionedId = listSecret('${keyVault.name}/${pfxSecretName}', '2016‑10‑01').id
+
 
 // -----------------------------------------------------------------------------
 // Application Gateway v2
@@ -140,7 +142,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'appGwSslCert'
         properties: {
-          keyVaultSecretId: pfxSecret.id
+          keyVaultSecretId: pfxSecretVersionedId
           
         }
       }
@@ -183,7 +185,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     enableHttp2: false
     autoscaleConfiguration: {
       minCapacity: 0
-      maxCapacity: 10
+      maxCapacity: 3
     }
   }
 }

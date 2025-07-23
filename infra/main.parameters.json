@@ -5,7 +5,7 @@
     "pfxSecretName": {
       "value": "AZURE_AKS_APPGW_PFX_BASE64"
     },
-    "pfxPasswordSecretNamepfxPasswordSecretName": {
+    "pfxPasswordSecretName": {
       "value": "AZURE_AKS_APPGW_PFX_PASSWORD"
     }
   }

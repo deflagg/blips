@@ -22,8 +22,8 @@ az stack group create `
     --description 'Core infrastructure deployment.' `
     --verbose `
     --parameters AZURE_AKS_APPGW_PFX_PASSWORD=$AZURE_AKS_APPGW_PFX_PASSWORD `
-                 AZURE_AKS_APPGW_PFX_BASE64=$AZURE_AKS_APPGW_PFX_BASE64
-    #            @$ParametersFile
+                 AZURE_AKS_APPGW_PFX_BASE64=$AZURE_AKS_APPGW_PFX_BASE64 `
+                 @$ParametersFile
 
 
 Write-Host "`n➤ Running install-dns-forwarder.sh on $vmName ..."

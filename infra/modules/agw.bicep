@@ -165,6 +165,12 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
           }
           protocol: 'Https'
           requireServerNameIndication: false
+          sslCertificate: {
+            id: resourceId(
+            'Microsoft.Network/applicationGateways/sslCertificates',
+            applicationGatewayName,
+            'appGwSslCert')
+          }
         }
       }
     ]

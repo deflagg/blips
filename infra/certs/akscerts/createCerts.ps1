@@ -9,7 +9,6 @@
 $RootName     = "BlipsAKSRootCA"
 $ServerName   = "BlipsAKSGateway"
 $DnsNames     = @("*.blips.service")
-$PfxPassword  = "P@ssw0rd!"
 # ----------------------------------------
 
 # ---------- ROOT CA (re‑use if it exists) ----------
@@ -52,7 +51,7 @@ Remove-Item ".\server_openssl.cnf"
 & openssl pkcs12 -export `
     -in "$ServerName.cer" -inkey "$ServerName.key" `
     -certfile "$RootName.cer" -out "$ServerName.pfx" `
-    -passout pass:$PfxPassword | Out-Null
+    -passout pass: | Out-Null
 
 # ---------- Base‑64 encode the PFX for Bicep ----------
 $bytes = Get-Content ".\$ServerName.pfx" -Encoding Byte

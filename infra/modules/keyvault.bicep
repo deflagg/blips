@@ -31,13 +31,6 @@ param pfxSecretName string = ''
 @secure()
 param AZURE_AKS_APPGW_PFX_BASE64 string = ''
 
-@description('Name of the secret for the PFX password.')
-@secure()
-param pfxPasswordSecretName string = ''
-
-@description('Value of the PFX password secret.')
-@secure()
-param AZURE_AKS_APPGW_PFX_PASSWORD string = ''
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
   name: keyVaultName
@@ -71,14 +64,6 @@ resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (
   }
 }
 
-// Optional: Create password secret if provided
-resource pfxPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (!empty(pfxPasswordSecretName) && !empty(AZURE_AKS_APPGW_PFX_PASSWORD)) {
-  parent: keyVault
-  name: pfxPasswordSecretName
-  properties: {
-    value: AZURE_AKS_APPGW_PFX_PASSWORD
-  }
-}
 
 output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name

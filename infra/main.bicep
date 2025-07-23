@@ -165,14 +165,6 @@ param pfxSecretName string
 @secure()
 param AZURE_AKS_APPGW_PFX_BASE64 string
 
-@description('Name of the secret for the PFX password.')
-@secure()
-param pfxPasswordSecretName string
-
-// passed in from GitHub environment secrets
-@description('Value of the PFX password secret.')
-@secure()
-param AZURE_AKS_APPGW_PFX_PASSWORD string
 
 // --------------------------------------------------
 // Key Vault
@@ -185,10 +177,10 @@ module keyVaultModule './modules/keyvault.bicep' = {
     keyVaultName: keyVaultName
     pfxSecretName: pfxSecretName
     AZURE_AKS_APPGW_PFX_BASE64: AZURE_AKS_APPGW_PFX_BASE64
-    pfxPasswordSecretName: pfxPasswordSecretName
-    AZURE_AKS_APPGW_PFX_PASSWORD: AZURE_AKS_APPGW_PFX_PASSWORD
   }
 }
+
+
 
 // --------------------------------------------------
 // App Gateway
@@ -201,6 +193,7 @@ module appGwModule './modules/agw.bicep' = {
     vnetName              : spoke1VnetName
     location              : location
     keyVaultName          : keyVaultModule.outputs.keyVaultName
+    pfxSecretName         : pfxSecretName
   }
   dependsOn: [
     spoke1VnetModule 

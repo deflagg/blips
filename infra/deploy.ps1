@@ -21,8 +21,7 @@ az stack group create `
     --deny-settings-mode None `
     --description 'Core infrastructure deployment.' `
     --verbose `
-    --parameters AZURE_AKS_APPGW_PFX_PASSWORD=$AZURE_AKS_APPGW_PFX_PASSWORD `
-                 AZURE_AKS_APPGW_PFX_BASE64=$AZURE_AKS_APPGW_PFX_BASE64 `
+    --parameters AZURE_AKS_APPGW_PFX_BASE64=$AZURE_AKS_APPGW_PFX_BASE64 `
                  @$ParametersFile
 
 

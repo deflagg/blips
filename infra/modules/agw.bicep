@@ -13,6 +13,10 @@ param location string = resourceGroup().location
 @description('Name of the Key Vault.')
 param keyVaultName string
 
+@description('Secret ID for the base64-encoded PFX certificate.')
+param pfxSecretName string
+
+
 // -----------------------------------------------------------------------------
 // Common IDs
 // -----------------------------------------------------------------------------
@@ -41,6 +45,10 @@ resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
     publicIPAllocationMethod: 'Static'
     idleTimeoutInMinutes: 4
   }
+}
+
+resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
+  name: keyVaultName
 }
 
 // -----------------------------------------------------------------------------
@@ -120,12 +128,13 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
         }
       }
     ]
+    // get from Key Vault
     sslCertificates: [
       {
         name: 'appGwSslCert'
         properties: {
-          data: '<base64-encoded-pfx>'
-          password: '<your-pfx-password>'
+          keyVaultSecretId: pfxSecret.id
+          
         }
       }
     ]
@@ -172,13 +181,6 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
   }
 }
 
-
-
-resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
-  name: keyVaultName
-}
-
-
 resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(keyVault.id, 'AppGwIdentityAccess')
   scope: keyVault
@@ -187,6 +189,12 @@ resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     principalId: applicationGatewayIdentity.properties.principalId 
     principalType: 'ServicePrincipal'
   }
+}
+
+// Optional: Create PFX secret if provided
+resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' existing =  {
+  parent: keyVault
+  name: pfxSecretName
 }
 
 // -----------------------------------------------------------------------------

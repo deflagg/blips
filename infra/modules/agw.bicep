@@ -10,6 +10,9 @@ param vnetName string = 'vnet-${projectName}'
 @description('Deployment location.')
 param location string = resourceGroup().location
 
+@description('Name of the Key Vault.')
+param keyVaultName string
+
 // -----------------------------------------------------------------------------
 // Common IDs
 // -----------------------------------------------------------------------------
@@ -117,7 +120,15 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
         }
       }
     ]
-
+    sslCertificates: [
+      {
+        name: 'appGwSslCert'
+        properties: {
+          data: '<base64-encoded-pfx>'
+          password: '<your-pfx-password>'
+        }
+      }
+    ]
     httpListeners: [
       {
         name: 'myListener'
@@ -158,6 +169,23 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       minCapacity: 0
       maxCapacity: 10
     }
+  }
+}
+
+
+
+resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
+  name: keyVaultName
+}
+
+
+resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, 'AppGwIdentityAccess')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+    principalId: applicationGatewayIdentity.properties.principalId 
+    principalType: 'ServicePrincipal'
   }
 }
 

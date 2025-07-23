@@ -45,9 +45,11 @@ jobs:
       uses: azure/powershell@v2
       env:
           DNS_FORWARDER_VM_PRIVATE_KEY: ${{ secrets.DNS_FORWARDER_VM_PRIVATE_KEY }}
+          AZURE_AKS_APPGW_PFX_BASE64: ${{ secrets.AZURE_AKS_APPGW_PFX_BASE64 }}
+          AZURE_AKS_APPGW_PFX_PASSWORD: ${{ secrets.AZURE_AKS_APPGW_PFX_PASSWORD }}
       with:
         azPSVersion: "latest"
         inlineScript: |
           ./infra/deploy.ps1
         errorActionPreference: Stop
-        failOnStandardError: true      
+        failOnStandardError: true   

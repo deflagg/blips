@@ -1,7 +1,7 @@
 <#
     Updated script: generates a root CA, a client cert, bundles them into a
     PFX, and installs both certificates silently in the current user stores.
-#>
+#> 
 
 # ---------- configurable values ----------
 $RootName    = "BlipsAzureVpnRootCA"

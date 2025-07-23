@@ -152,6 +152,43 @@ module acrModule './modules/acr.bicep' = {
   }
 }
 
+@description('Name of the Key Vault.')
+param keyVaultName string = 'kv-${projectName}'
+
+// Optional: Params for secrets (secure, so they can be passed at deployment time)
+@description('Name of the secret for the base64-encoded PFX.')
+@secure()
+param pfxSecretName string
+
+// passed in from GitHub environment secrets
+@description('Value of the base64-encoded PFX secret.')
+@secure()
+param AZURE_AKS_APPGW_PFX_BASE64 string
+
+@description('Name of the secret for the PFX password.')
+@secure()
+param pfxPasswordSecretName string
+
+// passed in from GitHub environment secrets
+@description('Value of the PFX password secret.')
+@secure()
+param AZURE_AKS_APPGW_PFX_PASSWORD string
+
+// --------------------------------------------------
+// Key Vault
+// --------------------------------------------------
+module keyVaultModule './modules/keyvault.bicep' = {
+  name: 'keyVaultDeployment'
+  params: {
+    projectName: projectName
+    location: location
+    keyVaultName: keyVaultName
+    pfxSecretName: pfxSecretName
+    AZURE_AKS_APPGW_PFX_BASE64: AZURE_AKS_APPGW_PFX_BASE64
+    pfxPasswordSecretName: pfxPasswordSecretName
+    AZURE_AKS_APPGW_PFX_PASSWORD: AZURE_AKS_APPGW_PFX_PASSWORD
+  }
+}
 
 // --------------------------------------------------
 // App Gateway
@@ -163,6 +200,7 @@ module appGwModule './modules/agw.bicep' = {
     applicationGatewayName: applicationGatewayName
     vnetName              : spoke1VnetName
     location              : location
+    keyVaultName          : keyVaultModule.outputs.keyVaultName
   }
   dependsOn: [
     spoke1VnetModule 

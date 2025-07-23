@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "pfxSecretName": {
+      "value": "AZURE_AKS_APPGW_PFX_BASE64"
+    },
+    "pfxPasswordSecretNamepfxPasswordSecretName": {
+      "value": "AZURE_AKS_APPGW_PFX_PASSWORD"
+    }
+  }
+}

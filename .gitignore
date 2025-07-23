@@ -1,3 +1,8 @@
 nogit/
-vpncert/
-!vpncert/createVPNCert.ps1
+
+infra/certs/vpncert/*
+!infra/certs/vpncert/createVPNCert.ps1
+
+infra/certs/akscerts/*
+!infra/certs/akscerts/createCerts.ps1
+

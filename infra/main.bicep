@@ -162,7 +162,6 @@ param pfxSecretName string
 
 // passed in from GitHub environment secrets
 @description('Value of the base64-encoded PFX secret.')
-@secure()
 param AZURE_AKS_APPGW_PFX_BASE64 string
 
 

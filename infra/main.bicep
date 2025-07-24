@@ -176,6 +176,7 @@ module keyVaultModule './modules/keyvault.bicep' = {
     location: location
     keyVaultName: keyVaultName
     pfxSecretName: pfxSecretName
+    enableSoftDelete: false
     AZURE_AKS_APPGW_PFX_BASE64: AZURE_AKS_APPGW_PFX_BASE64
   }
 }

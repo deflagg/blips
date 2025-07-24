@@ -196,7 +196,7 @@ module appGwModule './modules/agw.bicep' = {
     pfxSecretName         : pfxSecretName
   }
   dependsOn: [
-    spoke1VnetModule 
+    spoke1VnetModule
   ]
 }
 

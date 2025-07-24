@@ -59,10 +59,12 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
 
 // var pfxSecretVersionedId = listSecret('${keyVault.name}/${pfxSecretName}', '2016‑10‑01').id
 
-var pfxSecretVersionedId = listSecret(
-    resourceId('Microsoft.KeyVault/vaults/secrets', keyVaultName, pfxSecretName),
-    '2016-10-01'
-).id
+// var pfxSecretVersionedId = listSecret(
+//     resourceId('Microsoft.KeyVault/vaults/secrets', keyVaultName, pfxSecretName),
+//     '2016-10-01'
+// ).id
+
+var pfxSecretVersionedId string = 'https://kv-sysdesign.vault.azure.net/secrets/azure-aks-appgw-pfx-base64'
 
 
 

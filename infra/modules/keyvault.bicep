@@ -41,6 +41,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
       name: skuName
     }
     tenantId: subscription().tenantId
+    enableRbacAuthorization: true
     enabledForDeployment: true
     enabledForDiskEncryption: true
     enabledForTemplateDeployment: true

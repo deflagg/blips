@@ -20,7 +20,7 @@ param skuName string = 'standard'
 param enableSoftDelete bool = false
 
 @description('Enable purge protection for the Key Vault.')
-param enablePurgeProtection bool = false
+param enablePurgeProtection bool = true
 
 // Optional: If you want to create secrets during deployment
 @description('Name of the secret for the base64-encoded PFX.')

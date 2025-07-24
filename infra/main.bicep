@@ -273,3 +273,4 @@ module logAnalyticsModule './modules/loganalytics.bicep' = {
 // --------------------------------------------------
 // output aksClusterId   string = aksModule.outputs.aksClusterId
 // output apimServiceId  string = apimModule.outputs.apimResourceId
+output pfxSecretUriWithVersion string = keyVaultModule.outputs.pfxSecretUriWithVersion

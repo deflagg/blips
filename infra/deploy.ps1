@@ -14,7 +14,7 @@ az group create `
 
 
 Write-Host "`n➤ Deploying infrastructure stack via $TemplateFile ..."
-write-Host  "`n PFX Base64: $AZURE_AKS_APPGW_PFX_BASE64"
+write-Host  "`n PFX Base64: $env:AZURE_AKS_APPGW_PFX_BASE64"
 az stack group create `
     --resource-group $ResourceGroupName `
     --name ${ResourceGroupName}-stack `

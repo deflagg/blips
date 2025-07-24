@@ -45,7 +45,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
     enabledForDiskEncryption: true
     enabledForTemplateDeployment: true
     enableSoftDelete: enableSoftDelete
-    softDeleteRetentionInDays: 90
+    softDeleteRetentionInDays: 2
     enablePurgeProtection: enablePurgeProtection
     accessPolicies: [] // Add access policies as needed; for demo, assuming deployer has access
     networkAcls: {

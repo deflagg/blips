@@ -64,7 +64,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
 //     '2016-10-01'
 // ).id
 
-var pfxSecretVersionedId string = 'https://kv-sysdesign.vault.azure.net/secrets/azure-aks-appgw-pfx-base64'
+
+var pfxSecretVersionedId = 'https://${keyVaultName}.vault.azure.net/secrets/${pfxSecretName}'
 
 
 

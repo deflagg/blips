@@ -51,8 +51,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
   name: keyVaultName
 }
 
-
-
 // -----------------------------------------------------------------------------
 // Application Gateway v2
 // -----------------------------------------------------------------------------
@@ -65,6 +63,9 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       '${applicationGatewayIdentity.id}': {}
     }
   }
+  dependsOn: [
+    kvAccessPolicy
+  ]
   properties: {
     sku: {
       name: 'Standard_v2'

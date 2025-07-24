@@ -153,7 +153,7 @@ module acrModule './modules/acr.bicep' = {
 }
 
 @description('Name of the Key Vault.')
-param keyVaultName string = 'kv-${projectName}'
+param keyVaultName string = 'kv-primary-${projectName}'
 
 // Optional: Params for secrets (secure, so they can be passed at deployment time)
 @description('Name of the secret for the base64-encoded PFX.')

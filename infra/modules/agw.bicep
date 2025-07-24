@@ -13,8 +13,8 @@ param location string = resourceGroup().location
 @description('Name of the Key Vault.')
 param keyVaultName string
 
-@description('Secret ID for the base64-encoded PFX certificate.')
-param pfxSecretName string
+@description('ID of the secret for the base64-encoded PFX.')
+param pfxSecretUriWithVersion string
 
 
 // -----------------------------------------------------------------------------
@@ -50,8 +50,6 @@ resource publicIPAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = {
 resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
   name: keyVaultName
 }
-
-var pfxSecretVersionedId = 'https://${keyVaultName}.vault.azure.net/secrets/${pfxSecretName}'
 
 
 
@@ -137,7 +135,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'appGwSslCert'
         properties: {
-          keyVaultSecretId: pfxSecretVersionedId
+          keyVaultSecretId: pfxSecretUriWithVersion
           
         }
       }

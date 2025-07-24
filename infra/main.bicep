@@ -187,12 +187,12 @@ module keyVaultModule './modules/keyvault.bicep' = {
 module appGwModule './modules/agw.bicep' = {
   name: 'appGwDeployment'
   params: {
-    projectName           : projectName
-    applicationGatewayName: applicationGatewayName
-    vnetName              : spoke1VnetName
-    location              : location
-    keyVaultName          : keyVaultModule.outputs.keyVaultName
-    pfxSecretName         : pfxSecretName
+    projectName               : projectName
+    applicationGatewayName    : applicationGatewayName
+    vnetName                  : spoke1VnetName
+    location                  : location
+    keyVaultName              : keyVaultModule.outputs.keyVaultName
+    pfxSecretUriWithVersion   : keyVaultModule.outputs.pfxSecretUriWithVersion
   }
   dependsOn: [
     spoke1VnetModule

@@ -61,9 +61,12 @@ resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (
   name: pfxSecretName
   properties: {
     value: AZURE_AKS_APPGW_PFX_BASE64
+    contentType: 'application/x‑pkcs12'
+    
   }
 }
 
 
 output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name
+output pfxSecretUriWithVersion string = pfxSecret.properties.secretUriWithVersion

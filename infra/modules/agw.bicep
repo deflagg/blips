@@ -51,6 +51,37 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
   name: keyVaultName
 }
 
+resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, applicationGatewayIdentity.id, 'kv-secret-reader')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+    principalId: applicationGatewayIdentity.properties.principalId 
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource waitForRbac 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'wait-for-rbac'
+  kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
+  location: location
+  // make the script run after the role assignment finishes
+  dependsOn: [
+    kvAccessPolicy                // your Key Vault Secrets User role
+  ]
+
+  properties: {
+    azPowerShellVersion: '10.5'   // any version ≥ 3.0 is fine
+    scriptContent: '''
+      Write-Host "Sleeping 60 seconds to allow RBAC propagation..."
+      Start-Sleep -Seconds 60
+    '''
+    timeout: 'PT5M'               // ISO‑8601; gives the script 5 min max
+    cleanupPreference: 'OnSuccess'
+    retentionInterval: 'P1D'      // keep logs for 1 day
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Application Gateway v2
 // -----------------------------------------------------------------------------
@@ -64,7 +95,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     }
   }
   dependsOn: [
-    kvAccessPolicy
+    waitForRbac
   ]
   properties: {
     sku: {
@@ -190,15 +221,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
   }
 }
 
-resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, 'AppGwIdentityAccess')
-  scope: keyVault
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-    principalId: applicationGatewayIdentity.properties.principalId 
-    principalType: 'ServicePrincipal'
-  }
-}
+
 
 
 // -----------------------------------------------------------------------------

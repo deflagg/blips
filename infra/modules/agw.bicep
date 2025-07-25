@@ -73,8 +73,8 @@ resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   properties: {
     azPowerShellVersion: '14.0.0'   // any version ≥ 3.0 is fine
     scriptContent: '''
-      Write-Host "Sleeping  seconds to allow RBAC propagation..."
-      Start-Sleep -Seconds 300
+      Write-Host "Sleeping 90 seconds to allow RBAC propagation..."
+      Start-Sleep -Seconds 90
     '''
     timeout: 'PT5M'               // ISO‑8601; gives the script 5 min max
     cleanupPreference: 'OnSuccess'

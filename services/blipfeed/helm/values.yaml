@@ -23,7 +23,7 @@ serviceAccount:
   name: blipfeed-sa
   annotations:
     azure.workload.identity/inject: "true"
-    azure.workload.identity/client-id: $uamiClientId
+    azure.workload.identity/client-id: ""
 
 podSecurityContext: {}
   # fsGroup: 2000

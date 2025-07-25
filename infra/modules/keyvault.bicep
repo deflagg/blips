@@ -47,7 +47,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
     enabledForTemplateDeployment: true
     enableSoftDelete: enableSoftDelete  // must be set to true for Application Gateway integration
     softDeleteRetentionInDays: 7
-    enablePurgeProtection: enablePurgeProtection
+    //enablePurgeProtection: enablePurgeProtection ? true : null
     accessPolicies: [] // Add access policies as needed; for demo, assuming deployer has access
     networkAcls: {
       defaultAction: 'Allow' // Adjust for production (e.g., 'Deny' with IP/VNet rules)

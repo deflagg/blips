@@ -61,26 +61,26 @@ resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-resource waitForRbac 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'wait-for-rbac'
-  kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
-  location: location
-  // make the script run after the role assignment finishes
-  dependsOn: [
-    kvAccessPolicy                // your Key Vault Secrets User role
-  ]
+// resource waitForRbac 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+//   name: 'wait-for-rbac'
+//   kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
+//   location: location
+//   // make the script run after the role assignment finishes
+//   dependsOn: [
+//     kvAccessPolicy                // your Key Vault Secrets User role
+//   ]
 
-  properties: {
-    azPowerShellVersion: '10.5'   // any version ≥ 3.0 is fine
-    scriptContent: '''
-      Write-Host "Sleeping 60 seconds to allow RBAC propagation..."
-      Start-Sleep -Seconds 60
-    '''
-    timeout: 'PT5M'               // ISO‑8601; gives the script 5 min max
-    cleanupPreference: 'OnSuccess'
-    retentionInterval: 'P1D'      // keep logs for 1 day
-  }
-}
+//   properties: {
+//     azPowerShellVersion: '10.5'   // any version ≥ 3.0 is fine
+//     scriptContent: '''
+//       Write-Host "Sleeping 60 seconds to allow RBAC propagation..."
+//       Start-Sleep -Seconds 60
+//     '''
+//     timeout: 'PT5M'               // ISO‑8601; gives the script 5 min max
+//     cleanupPreference: 'OnSuccess'
+//     retentionInterval: 'P1D'      // keep logs for 1 day
+//   }
+// }
 
 // -----------------------------------------------------------------------------
 // Application Gateway v2
@@ -95,7 +95,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     }
   }
   dependsOn: [
-    waitForRbac
+    kvAccessPolicy // ensure the Key Vault access policy is created before the Application Gateway
   ]
   properties: {
     sku: {

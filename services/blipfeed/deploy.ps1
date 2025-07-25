@@ -14,15 +14,15 @@ $recordName  = "blipfeed"
 $agwIp       = "20.57.68.47"           # Application Gateway public IP
 # --------------------------------------------------------------------------
 
-Set-Location -Path "./services/$imageName"
+Set-Location -Path "./services/${imageName}"
 
 # --------------------------------------------------------------------------
 # 1. Login to Azure Container Registry
 # --------------------------------------------------------------------------
-$acrLoginServer = "$acrName.azurecr.io"
-$fullImageName  = "$($acrLoginServer)/$($imageName):$($imageTag)"
+$acrLoginServer = "${acrName}.azurecr.io"
+$fullImageName  = "${acrLoginServer}/${imageName}:${imageTag}"
 
-Write-Host "Logging in to ACR: $acrLoginServer ..."
+Write-Host "Logging in to ACR: ${acrLoginServer} ..."
 az acr login --name $acrName --output none
 if ($LASTEXITCODE) { throw "ACR login failed." }
 Write-Host "ACR login successful." -ForegroundColor Green
@@ -30,15 +30,15 @@ Write-Host "ACR login successful." -ForegroundColor Green
 # --------------------------------------------------------------------------
 # 2. Build & push image
 # --------------------------------------------------------------------------
-Write-Host "Building image $imageName:$imageTag ..."
-docker build -t "$imageName:$imageTag" . || throw "Docker build failed."
+Write-Host "Building image ${imageName}:${imageTag} ..."
+docker build -t "${imageName}:${imageTag}" . || throw "Docker build failed."
 
-Write-Host "Tagging for ACR → $fullImageName ..."
-docker tag "$imageName:$imageTag" $fullImageName || throw "Tagging failed."
+Write-Host "Tagging for ACR → ${fullImageName} ..."
+docker tag "${imageName}:${imageTag}" $fullImageName || throw "Tagging failed."
 
 Write-Host "Pushing to ACR ..."
 docker push $fullImageName || throw "Push failed."
-Write-Host "Image pushed: $fullImageName" -ForegroundColor Green
+Write-Host "Image pushed: ${fullImageName}" -ForegroundColor Green
 
 # --------------------------------------------------------------------------
 # 3. AKS CLI & kube‑config
@@ -55,7 +55,7 @@ $kvClientId = az aks show -g $aksRG -n $aksName `
                --query "addonProfiles.azureKeyvaultSecretsProvider.identity.clientId" -o tsv
 if (-not $kvClientId) { throw "Could not retrieve Key Vault add‑on client‑ID." }
 
-Write-Host "CSI add‑on UAMI client‑ID: $kvClientId"
+Write-Host "CSI add‑on UAMI client‑ID: ${kvClientId}"
 
 # --------------------------------------------------------------------------
 # 5. Helm deploy / upgrade  👈 UPDATED
@@ -77,8 +77,7 @@ kubectl exec -it (
       -o jsonpath='{.items[0].metadata.name}'
   ) -- cat /mnt/secrets/db-password
 
-
-Write-Host "Helm release $release deployed in namespace $namespace." -ForegroundColor Green
+Write-Host "Helm release ${release} deployed in namespace ${namespace}." -ForegroundColor Green
 
 # --------------------------------------------------------------------------
 # 6. DNS record management (AGW IP) – unchanged
@@ -108,5 +107,5 @@ if (-not $agwIp) {
         --resource-group $recordRG --zone-name $zoneName `
         --record-set-name $recordName --ipv4-address $agwIp --output none
 
-    Write-Host "DNS updated: $recordName.$zoneName ➜ $agwIp"
+    Write-Host "DNS updated: ${recordName}.${zoneName} ➜ ${agwIp}"
 }

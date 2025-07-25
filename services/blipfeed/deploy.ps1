@@ -63,6 +63,7 @@ Write-Host "CSI add‑on UAMI client‑ID: ${kvClientId}"
 helm uninstall $release -n $namespace 2>$null
 
 # Escaping dots in annotation key (PowerShell) → use backtick `
+$saAnnotationKeyEsc = "serviceAccount.annotations.azure`\.workload`\.identity\/client-id"
 $uamiClientId = az identity show -g $aksRG -n blipfeed-mi --query clientId -o tsv
 
 helm upgrade --install $release $chartPath `

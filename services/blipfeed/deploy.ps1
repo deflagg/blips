@@ -67,17 +67,18 @@ helm uninstall $release -n $namespace 2>$null
 $saAnnotationKeyEsc = 'serviceAccount.annotations."azure\.workload\.identity\/client-id"'
 $uamiClientId = az identity show -g $aksRG -n blipfeed-mi --query clientId -o tsv
 
+if (-not $uamiClientId) {
+    throw "Could not retrieve Workload Identity client‑ID."
+}
+Write-Host "Workload Identity UAMI client‑ID: ${uamiClientId}"
+
 helm upgrade --install $release $chartPath `
   --namespace $namespace --create-namespace --atomic `
   --set "$saAnnotationKeyEsc=$uamiClientId" `
   --set "azureWorkloadIdentity.clientId=$uamiClientId"
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
 
-kubectl exec -it (
-    kubectl get pods `
-      -l app.kubernetes.io/name=blips-blipfeed `
-      -o jsonpath='{.items[0].metadata.name}'
-  ) -- cat /mnt/secrets/db-password
+
 
 Write-Host "Helm release ${release} deployed in namespace ${namespace}." -ForegroundColor Green
 

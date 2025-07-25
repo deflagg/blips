@@ -20,7 +20,7 @@ Set-Location -Path "./services/$imageName"
 # 1. Login to Azure Container Registry
 # --------------------------------------------------------------------------
 $acrLoginServer = "$acrName.azurecr.io"
-$fullImageName  = "$acrLoginServer/$imageName:$imageTag"
+$fullImageName  = "$($acrLoginServer)/$($imageName):$($imageTag)"
 
 Write-Host "Logging in to ACR: $acrLoginServer ..."
 az acr login --name $acrName --output none
@@ -70,6 +70,13 @@ helm upgrade --install $release $chartPath `
   --set "$saAnnotationKeyEsc=$kvClientId" `
   --set "azureWorkloadIdentity.clientId=$kvClientId"
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
+
+kubectl exec -it (
+    kubectl get pods `
+      -l app.kubernetes.io/name=blips-blipfeed `
+      -o jsonpath='{.items[0].metadata.name}'
+  ) -- cat /mnt/secrets/db-password
+
 
 Write-Host "Helm release $release deployed in namespace $namespace." -ForegroundColor Green
 

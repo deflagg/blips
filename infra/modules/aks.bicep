@@ -92,8 +92,33 @@ resource aksCluster 'Microsoft.ContainerService/managedClusters@2024-05-01' = {
         }
         enabled: true
       }
+      azureKeyvaultSecretsProvider: {
+        enabled: true
+        config: {
+          enableSecretRotation: 'true'          // optional – auto‑rotate
+          rotationPollInterval: '2m'            // optional – rotation cadence
+          'syncSecret.enabled': 'true'          // also create native K8s Secret
+        }
+      }
     }
     enableRBAC: true
+  }
+}
+
+// Existing vault
+param keyVaultName string
+resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
+  name: keyVaultName
+}
+
+
+resource csiKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, 'kv-secrets-user')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+    principalId: aksCluster.properties.addonProfiles.azureKeyvaultSecretsProvider.identity.objectId
+    principalType: 'ServicePrincipal'
   }
 }
 

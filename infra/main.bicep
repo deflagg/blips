@@ -216,6 +216,7 @@ module aksModule './modules/aks.bicep' = {
     appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
     aksClusterName         : aksClusterName
     dnsPrefix              : dnsPrefix
+    keyVaultName           : keyVaultModule.outputs.keyVaultName
   }
 }
 

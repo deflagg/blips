@@ -1,106 +1,105 @@
-# --- User-defined variables ---
-$acrName = "acrsysdesign"
-$imageName = "blipfeed"
-$imageTag = "latest"
-# ------------------------------
+# --- User‑defined variables -----------------------------------------------
+$acrName     = "acrsysdesign"
+$imageName   = "blipfeed"
+$imageTag    = "latest"
+$aksName     = "aks-sysdesign"         # 👈 keep in sync with your bicep
+$aksRG       = "sysdesign"             # 👈 resource group for the AKS cluster
+$release     = "blipfeed"
+$namespace   = "blipfeed"
+$chartPath   = "./helm"
+# DNS
+$recordRG    = "global"
+$zoneName    = "priv.dns-sysdesign.com"
+$recordName  = "blipfeed"
+$agwIp       = "20.57.68.47"           # Application Gateway public IP
+# --------------------------------------------------------------------------
 
-set-location -path "./services/$($imageName)"
+Set-Location -Path "./services/$imageName"
 
-# Derived variables
-$acrLoginServer = "$($acrName).azurecr.io"
-$fullImageName = "$($acrLoginServer)/$($imageName):$($imageTag)"
-
+# --------------------------------------------------------------------------
 # 1. Login to Azure Container Registry
-write-host "Logging in to ACR: $($acrLoginServer)..."
-az acr login --name $acrName
-if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to login to ACR. Please check your credentials and ACR name."
-    exit 1
-}
-write-host "ACR login successful." -f Green
+# --------------------------------------------------------------------------
+$acrLoginServer = "$acrName.azurecr.io"
+$fullImageName  = "$acrLoginServer/$imageName:$imageTag"
 
-# 2. Build the Docker image
-write-host "Building Docker image: $($imageName):$($imageTag)..."
-docker build -t "$($imageName):$($imageTag)" ./
-if ($LASTEXITCODE -ne 0) {
-    write-error "Docker build failed."
-    exit 1
-}
-write-host "Docker image built successfully." -f Green
+Write-Host "Logging in to ACR: $acrLoginServer ..."
+az acr login --name $acrName --output none
+if ($LASTEXITCODE) { throw "ACR login failed." }
+Write-Host "ACR login successful." -ForegroundColor Green
 
-# 3. Tag the Docker image for ACR
-write-host "Tagging image for ACR: $($fullImageName)..."
-docker tag "$($imageName):$($imageTag)" $fullImageName
-if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to tag Docker image."
-    exit 1
-}
-write-host "Image tagged successfully." -f Green
+# --------------------------------------------------------------------------
+# 2. Build & push image
+# --------------------------------------------------------------------------
+Write-Host "Building image $imageName:$imageTag ..."
+docker build -t "$imageName:$imageTag" . || throw "Docker build failed."
 
-# 4. Push the image to ACR
-write-host "Pushing image to ACR: $($fullImageName)..."
-docker push $fullImageName
-if ($LASTEXITCODE -ne 0) {
-    write-error "Failed to push image to ACR."
-    exit 1
-}
-write-host "Image pushed to ACR successfully: $($fullImageName)" -f Green
+Write-Host "Tagging for ACR → $fullImageName ..."
+docker tag "$imageName:$imageTag" $fullImageName || throw "Tagging failed."
 
-az aks install-cli
+Write-Host "Pushing to ACR ..."
+docker push $fullImageName || throw "Push failed."
+Write-Host "Image pushed: $fullImageName" -ForegroundColor Green
 
-# add kubectl to PATH 
-$env:PATH += ";/usr/local/bin"
+# --------------------------------------------------------------------------
+# 3. AKS CLI & kube‑config
+# --------------------------------------------------------------------------
+az aks install-cli --output none
+$env:PATH += if ($IsWindows) { ";$Env:USERPROFILE\.azure-kubectl" } else { ":/usr/local/bin" }
 
-az aks get-credentials --resource-group sysdesign --name aks-sysdesign
+az aks get-credentials -g $aksRG -n $aksName --overwrite-existing --output none
 
-$release   = "blipfeed"
-$namespace = "blipfeed"
-$chartPath = "./helm"
+# --------------------------------------------------------------------------
+# 4. Grab the CSI add‑on’s managed‑identity client‑ID  👈 NEW
+# --------------------------------------------------------------------------
+$kvClientId = az aks show -g $aksRG -n $aksName `
+               --query "addonProfiles.azureKeyvaultSecretsProvider.identity.clientId" -o tsv
+if (-not $kvClientId) { throw "Could not retrieve Key Vault add‑on client‑ID." }
 
-helm uninstall $release -n $namespace
+Write-Host "CSI add‑on UAMI client‑ID: $kvClientId"
 
-#helm lint "$chartPath"          # catches chart errors
-# Idempotent deploy: upgrades if present, installs if not
-helm upgrade --install $release "$chartPath" `
-  --namespace $namespace `
-  --create-namespace `
-  --atomic
+# --------------------------------------------------------------------------
+# 5. Helm deploy / upgrade  👈 UPDATED
+# --------------------------------------------------------------------------
+helm uninstall $release -n $namespace 2>$null
 
-if ($LASTEXITCODE -ne 0) {
-    write-error "Helm upgrade/install failed."
-    exit 1
-}
+# Escaping dots in annotation key (PowerShell) → use backtick `
+$saAnnotationKeyEsc = "serviceAccount.annotations.azure`\.workload`\.identity\/client-id"
 
-write-host "Helm release $release deployed (namespace: $namespace)." -f Green
+helm upgrade --install $release $chartPath `
+  --namespace $namespace --create-namespace --atomic `
+  --set "$saAnnotationKeyEsc=$kvClientId" `
+  --set "azureWorkloadIdentity.clientId=$kvClientId"
+if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
 
-$resourceGroup = "global"
-$zoneName = "priv.dns-sysdesign.com"
-$recordName = "blipfeed" # e.g., blipfeed.<your-domain.com>
+Write-Host "Helm release $release deployed in namespace $namespace." -ForegroundColor Green
 
-# Get the external IP of the service
-#$externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
-# $externalIp = kubectl get svc blips-blipfeed -n blipfeed -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
-
-# application gateway frontend IP 
-
-#get the IP address of the application gateway
-$externalIp = "20.57.68.47"
-
-
-
-if (-not $externalIp) {
-    Write-Host "No external IP found for service blips-blipfeed. Skipping DNS update."
+# --------------------------------------------------------------------------
+# 6. DNS record management (AGW IP) – unchanged
+# --------------------------------------------------------------------------
+if (-not $agwIp) {
+    Write-Host "No external IP found. Skipping DNS update."
 } else {
-    # Create the record set if it doesn't exist
-    az network dns record-set a create --resource-group $resourceGroup --zone-name $zoneName --name $recordName --ttl 60
+    az network dns record-set a create `
+        --resource-group $recordRG `
+        --zone-name $zoneName `
+        --name $recordName `
+        --ttl 60 --output none
 
-    # Remove existing records (optional, ensures only current IP is present)
-    az network dns record-set a remove-record --resource-group $resourceGroup --zone-name $zoneName --record-set-name $recordName --ipv4-address "*" --yes
+    # Remove *all* A records first
+    $records = az network dns record-set a list `
+        --resource-group $recordRG `
+        --zone-name $zoneName `
+        --query "[?name=='$recordName'].aRecords[].ipv4Address" -o tsv
+    foreach ($ip in $records) {
+        az network dns record-set a remove-record `
+            --resource-group $recordRG --zone-name $zoneName `
+            --record-set-name $recordName --ipv4-address $ip --yes --output none
+    }
 
-    # Add the new IP
-    az network dns record-set a add-record --resource-group $resourceGroup --zone-name $zoneName --record-set-name $recordName --ipv4-address $externalIp
+    # Add the current AGW IP
+    az network dns record-set a add-record `
+        --resource-group $recordRG --zone-name $zoneName `
+        --record-set-name $recordName --ipv4-address $agwIp --output none
 
-    Write-Host "DNS record updated: $recordName.$zoneName -> $externalIp"
+    Write-Host "DNS updated: $recordName.$zoneName ➜ $agwIp"
 }
-
-

@@ -96,7 +96,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     }
   }
   dependsOn: [
-    kvAccessPolicy
+    waitForRbac
   ]
   properties: {
     sku: {

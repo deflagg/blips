@@ -63,12 +63,12 @@ Write-Host "CSI add‑on UAMI client‑ID: ${kvClientId}"
 helm uninstall $release -n $namespace 2>$null
 
 # Escaping dots in annotation key (PowerShell) → use backtick `
-$saAnnotationKeyEsc = "serviceAccount.annotations.azure`\.workload`\.identity\/client-id"
+$uamiClientId = az identity show -g $aksRG -n blipfeed-mi --query clientId -o tsv
 
 helm upgrade --install $release $chartPath `
   --namespace $namespace --create-namespace --atomic `
-  --set "$saAnnotationKeyEsc=$kvClientId" `
-  --set "azureWorkloadIdentity.clientId=$kvClientId"
+  --set "$saAnnotationKeyEsc=$uamiClientId" `
+  --set "azureWorkloadIdentity.clientId=$uamiClientId"
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
 
 kubectl exec -it (

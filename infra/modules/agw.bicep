@@ -61,26 +61,26 @@ resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-// resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-//   name: 'wait-for-rbac'
-//   kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
-//   location: location
-//   // make the script run after the role assignment finishes
-//   dependsOn: [
-//     kvAccessPolicy                // your Key Vault Secrets User role
-//   ]
+resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: 'wait-for-rbac'
+  kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
+  location: location
+  // make the script run after the role assignment finishes
+  dependsOn: [
+    kvAccessPolicy                // your Key Vault Secrets User role
+  ]
 
-//   properties: {
-//     azPowerShellVersion: '14.0.0'   // any version ≥ 3.0 is fine
-//     scriptContent: '''
-//       Write-Host "Sleeping 300 seconds to allow RBAC propagation..."
-//       Start-Sleep -Seconds 300
-//     '''
-//     timeout: 'PT10M'               // ISO‑8601; gives the script 5 min max
-//     cleanupPreference: 'OnSuccess'
-//     retentionInterval: 'P1D'      // keep logs for 1 day
-//   }
-// }
+  properties: {
+    azPowerShellVersion: '14.0.0'   // any version ≥ 3.0 is fine
+    scriptContent: '''
+      Write-Host "Sleeping 600 seconds to allow RBAC propagation..."
+      Start-Sleep -Seconds 600
+    '''
+    timeout: 'PT10M'               // ISO‑8601; gives the script 5 min max
+    cleanupPreference: 'OnSuccess'
+    retentionInterval: 'P1D'      // keep logs for 1 day
+  }
+}
 
 
 // -----------------------------------------------------------------------------
@@ -177,19 +177,16 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'myListener'
         properties: {
+          protocol: 'Https'
           frontendIPConfiguration: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
           }
           frontendPort: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
           }
-          protocol: 'Https'
           requireServerNameIndication: false
           sslCertificate: {
-            id: resourceId(
-            'Microsoft.Network/applicationGateways/sslCertificates',
-            applicationGatewayName,
-            'appGwSslCert')
+            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName,'appGwSslCert')
           }
         }
       }

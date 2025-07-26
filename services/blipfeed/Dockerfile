@@ -13,7 +13,7 @@ RUN dotnet publish -c Release -o /app
 
 # Use the .NET 9 ASP.NET runtime image for the final, smaller image
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
-ENV ASPNETCORE_URLS="https://*:443"
+ENV ASPNETCORE_URLS="https://0.0.0.0:443"
 
 WORKDIR /app
 COPY --from=build /app .

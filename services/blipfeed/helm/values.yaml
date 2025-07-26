@@ -49,9 +49,9 @@ service:
 # This block is for setting up the ingress 
 ingress:
   enabled: true
-  #className: application-gateway
   annotations:
     kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"  # Force HTTP to HTTPS redirection
   hosts:
     - host: blipfeed.blips.service
       paths:
@@ -60,10 +60,10 @@ ingress:
           backend:
             serviceName: blips-blipfeed
             servicePort: 443
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  tls:
+    - secretName: blipfeed-tls-secret
+      hosts:
+        - blipfeed.blips.service
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -103,6 +103,14 @@ autoscaling:
 
 keyvault:
   name: kv-primary-sysdesign
+  secretObjects:  # Sync Key Vault cert to Kubernetes Secret for Ingress
+    - secretName: blipfeed-tls-secret
+      type: kubernetes.io/tls
+      data:
+        - objectName: azure-aks-appgw-pfx-base64
+          key: tls.crt
+        - objectName: azure-aks-appgw-pfx-base64
+          key: tls.key
 azureTenantId: "35d231ad-d70d-43bf-bc50-c2e8bbc10537"
 azureWorkloadIdentity:
   clientId: ""
@@ -119,10 +127,6 @@ volumeMounts:
   - name: kv-secrets
     mountPath: /mnt/secrets
     readOnly: true
-
-
-
-
 
 nodeSelector: {}
 

@@ -112,15 +112,28 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
 }
 
 
-resource csiKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource aksKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(keyVault.id, 'kv-secrets-user')
   scope: keyVault
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-    principalId: aksCluster.properties.addonProfiles.azureKeyvaultSecretsProvider.identity.objectId
+    principalId: aksClusterIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
+
+
+
+
+// resource csiKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+//   name: guid(keyVault.id, 'kv-secrets-user')
+//   scope: keyVault
+//   properties: {
+//     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+//     principalId: aksCluster.properties.addonProfiles.azureKeyvaultSecretsProvider.identity.objectId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
 // Assigns the Reader role to the Resource Group
 resource resourceGroupReaderRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -12,10 +13,41 @@ builder.Services
     .AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
 
-// Load cert from mounted secret (adjust paths/keys as needed)
-var certPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";  // Key Vault secret name
-//var certPassword = "/mnt/secrets/cert-password";  // Or env var
-var cert = X509Certificate2.CreateFromPemFile(certPath); ///, File.ReadAllText(certPassword));
+// // Load cert from mounted secret (adjust paths/keys as needed)
+// var certPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";  // Key Vault secret name
+// //var certPassword = "/mnt/secrets/cert-password";  // Or env var
+// var cert = X509Certificate2.CreateFromPemFile(certPath); ///, File.ReadAllText(certPassword));
+
+// builder.WebHost.UseKestrel(options =>
+// {
+//     options.ListenAnyIP(443, listenOptions =>
+//     {
+//         listenOptions.UseHttps(cert);
+//     });
+// });
+
+// Load base64-encoded passwordless PFX from mounted secret
+string base64PfxPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";
+string base64Pfx = File.ReadAllText(base64PfxPath).Trim();
+byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
+
+// Load the PFX using the .NET 9 API (returns a single cert)
+X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(
+    pfxBytes,
+    password: null,  // Passwordless
+    keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
+);
+
+builder.WebHost.UseKestrel(options =>
+{
+    options.ListenAnyIP(443, listenOptions =>
+    {
+        listenOptions.UseHttps(cert);
+    });
+});
+
+
+
 
 builder.WebHost.UseKestrel(options =>
 {

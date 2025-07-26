@@ -79,12 +79,14 @@ livenessProbe:
   httpGet:
     path: /health/live
     port: 443
+    scheme: HTTPS
   initialDelaySeconds: 15
   periodSeconds: 5
 readinessProbe:
   httpGet:
     path: /health/ready
     port: 443
+    scheme: HTTPS
   initialDelaySeconds: 15
   periodSeconds: 5
 

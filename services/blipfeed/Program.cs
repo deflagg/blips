@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -10,7 +11,20 @@ builder.Services.AddOpenApi();
 builder.Services
     .AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
-    
+
+// Load cert from mounted secret (adjust paths/keys as needed)
+var certPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";  // Key Vault secret name
+//var certPassword = "/mnt/secrets/cert-password";  // Or env var
+var cert = X509Certificate2.CreateFromPemFile(certPath); ///, File.ReadAllText(certPassword));
+
+builder.WebHost.UseKestrel(options =>
+{
+    options.ListenAnyIP(443, listenOptions =>
+    {
+        listenOptions.UseHttps(cert);
+    });
+});
+
 
 var app = builder.Build();
 

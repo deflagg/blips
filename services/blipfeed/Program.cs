@@ -35,7 +35,7 @@ byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
 // Load the PFX using the .NET 9 API (returns a single cert)
 X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(
     pfxBytes,
-    password: null,  // Passwordless
+    password: null,
     keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
 );
 

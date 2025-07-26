@@ -48,17 +48,6 @@ builder.WebHost.UseKestrel(options =>
 });
 
 
-
-
-builder.WebHost.UseKestrel(options =>
-{
-    options.ListenAnyIP(443, listenOptions =>
-    {
-        listenOptions.UseHttps(cert);
-    });
-});
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

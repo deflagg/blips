@@ -4,5 +4,6 @@ infra/certs/vpncert/*
 !infra/certs/vpncert/createVPNCert.ps1
 
 infra/certs/akscerts/*
-!infra/certs/akscerts/createCerts.ps1
+!infra/certs/akscerts/createServerCert.ps1
+!infra/certs/akscerts/createRootCA.ps1
 

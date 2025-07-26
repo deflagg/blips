@@ -22,8 +22,8 @@ serviceAccount:
   create: true
   name: blipfeed-sa
   annotations:
-    azure.workload.identity/inject: "true"
     azure.workload.identity/client-id: ""
+    #azure.workload.identity/inject: "true"
 
 podSecurityContext: {}
   # fsGroup: 2000

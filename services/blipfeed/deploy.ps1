@@ -72,6 +72,27 @@ if (-not $uamiClientId) {
 }
 Write-Host "Workload Identity UAMI client‑ID: ${uamiClientId}"
 
+# Fetch OIDC issuer URL from AKS
+$issuerUrl = az aks show -g $aksRG -n $aksName --query "oidcIssuerProfile.issuerUrl" -o tsv
+if (-not $issuerUrl) { throw "Could not retrieve AKS OIDC issuer URL." }
+Write-Host "AKS OIDC Issuer URL: ${issuerUrl}"
+
+# Create or update federated identity credential
+$fedCredName = "blipfeed-fed-cred"  # Unique name
+az identity federated-credential delete --name $fedCredName --identity-name aks-sysdesign-identity --resource-group $aksRG --yes --output none
+az identity federated-credential create `
+    --name $fedCredName `
+    --identity-name aks-sysdesign-identity `
+    --resource-group $aksRG `
+    --issuer $issuerUrl `
+    --subject system:serviceaccount:blipfeed:blipfeed-sa `
+    --audience api://AzureADTokenExchange
+if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
+Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
+
+# Wait for propagation
+Start-Sleep -Seconds 60
+
 helm upgrade --install $release $chartPath `
   --namespace $namespace --create-namespace --atomic `
   --set "$saAnnotationKeyEsc=$uamiClientId" `

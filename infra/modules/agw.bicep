@@ -61,24 +61,79 @@ resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
+// resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+//   name: 'wait-for-rbac'
+//   kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
+//   location: location
+//   // make the script run after the role assignment finishes
+//   dependsOn: [
+//     kvAccessPolicy                // your Key Vault Secrets User role
+//   ]
+
+//   properties: {
+//     azPowerShellVersion: '14.0.0'   // any version ≥ 3.0 is fine
+//     scriptContent: '''
+//       Write-Host "Sleeping 1200 seconds to allow RBAC propagation..."
+//       Start-Sleep -Seconds 1200
+//     '''
+//     timeout: 'PT60M'               // ISO‑8601; gives the script 5 min max
+//     cleanupPreference: 'OnSuccess'
+//     retentionInterval: 'P1D'      // keep logs for 1 day
+//   }
+// }
+
 resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'wait-for-rbac'
-  kind: 'AzurePowerShell'          // the other option is 'AzureCLI'
+  kind: 'AzurePowerShell'
   location: location
-  // make the script run after the role assignment finishes
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${applicationGatewayIdentity.id}': {}
+    }
+  }
   dependsOn: [
-    kvAccessPolicy                // your Key Vault Secrets User role
+    kvAccessPolicy
   ]
 
   properties: {
-    azPowerShellVersion: '14.0.0'   // any version ≥ 3.0 is fine
+    azPowerShellVersion: '14.0.0'
+    arguments: '-clientId ${applicationGatewayIdentity.properties.clientId} -pfxSecretUriWithVersion "${pfxSecretUriWithVersion}"'
     scriptContent: '''
-      Write-Host "Sleeping 1200 seconds to allow RBAC propagation..."
-      Start-Sleep -Seconds 1200
+      param(
+        [string]$clientId,
+        [string]$pfxSecretUriWithVersion
+      )
+
+      Connect-AzAccount -Identity -AccountId $clientId
+
+      $uri = [Uri]$pfxSecretUriWithVersion
+      $segments = $uri.Segments
+      $secretName = $segments[2].TrimEnd('/')
+      $version = $segments[3].TrimEnd('/')
+
+      $maxAttempts = 60  # e.g., 60 attempts * 20s sleep = 20 min max
+      $attempt = 0
+
+      while ($attempt -lt $maxAttempts) {
+        try {
+          Get-AzKeyVaultSecret -VaultName $uri.Host.Split('.')[0] -Name $secretName -Version $version -ErrorAction Stop
+          Write-Host "Secret access successful. RBAC has propagated."
+          break
+        } catch {
+          Write-Host "Attempt $attempt failed: $($_.Exception.Message)"
+          Start-Sleep -Seconds 20
+        }
+        $attempt++
+      }
+
+      if ($attempt -eq $maxAttempts) {
+        throw "Failed to propagate RBAC after $maxAttempts attempts."
+      }
     '''
-    timeout: 'PT60M'               // ISO‑8601; gives the script 5 min max
+    timeout: 'PT60M'
     cleanupPreference: 'OnSuccess'
-    retentionInterval: 'P1D'      // keep logs for 1 day
+    retentionInterval: 'P1D'
   }
 }
 

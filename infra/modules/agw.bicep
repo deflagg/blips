@@ -119,6 +119,7 @@ resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
         try {
           Get-AzKeyVaultSecret -VaultName $uri.Host.Split('.')[0] -Name $secretName -Version $version -ErrorAction Stop
           Write-Host "Secret access successful. RBAC has propagated."
+          Write-Host "Duration: $($attempt * 20) seconds"
           break
         } catch {
           Write-Host "Attempt $attempt failed: $($_.Exception.Message)"

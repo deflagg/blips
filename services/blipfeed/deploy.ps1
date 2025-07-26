@@ -64,7 +64,7 @@ helm uninstall $release -n $namespace 2>$null
 
 # Escaping dots in annotation key (PowerShell) → use backtick `
 #$saAnnotationKeyEsc = "serviceAccount.annotations.azure`\.workload`\.identity\/client-id"
-$saAnnotationKeyEsc = 'serviceAccount.annotations."azure\.workload\.identity\/client-id"'
+$saAnnotationKeyEsc = "serviceAccount.annotations.azure\.workload\.identity\/client-id"
 $uamiClientId = az identity show -g $aksRG -n 'aks-sysdesign-identity' --query clientId -o tsv
 
 if (-not $uamiClientId) {

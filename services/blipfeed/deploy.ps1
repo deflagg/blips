@@ -49,7 +49,7 @@ $env:PATH += if ($IsWindows) { ";$Env:USERPROFILE\.azure-kubectl" } else { ":/us
 az aks get-credentials -g $aksRG -n $aksName --overwrite-existing --output none
 
 # --------------------------------------------------------------------------
-# 4. Grab the CSI add‑on’s managed‑identity client‑ID  👈 NEW
+# 4. Grab the CSI add‑on’s managed‑identity client‑ID  
 # --------------------------------------------------------------------------
 $kvClientId = az aks show -g $aksRG -n $aksName `
                --query "addonProfiles.azureKeyvaultSecretsProvider.identity.clientId" -o tsv
@@ -58,7 +58,7 @@ if (-not $kvClientId) { throw "Could not retrieve Key Vault add‑on client‑ID
 Write-Host "CSI add‑on UAMI client‑ID: ${kvClientId}"
 
 # --------------------------------------------------------------------------
-# 5. Helm deploy / upgrade  👈 UPDATED
+# 5. Helm deploy / upgrade 
 # --------------------------------------------------------------------------
 helm uninstall $release -n $namespace 2>$null
 

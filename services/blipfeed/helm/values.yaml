@@ -97,7 +97,7 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 keyvault:
-  name: kv-sysdesign
+  name: kv-primary-sysdesign
 azureTenantId: "35d231ad-d70d-43bf-bc50-c2e8bbc10537"
 azureWorkloadIdentity:
   clientId: ""

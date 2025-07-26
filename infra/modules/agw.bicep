@@ -115,6 +115,8 @@ resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       $maxAttempts = 120  # 120 attempts x 20 seconds = 3600 seconds = 1 hour
       $attempt = 0
 
+      Start-Sleep -Seconds 60
+
       while ($attempt -lt $maxAttempts) {
         try {
           $secretValue = Get-AzKeyVaultSecret -VaultName $uri.Host.Split('.')[0] -Name $secretName -Version $version -AsPlainText -ErrorAction Stop

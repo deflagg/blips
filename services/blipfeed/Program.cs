@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -40,7 +41,7 @@ X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(
 
 builder.WebHost.UseKestrel(options =>
 {
-    options.ListenAnyIP(443, listenOptions =>
+    options.Listen(IPAddress.Any, 443, listenOptions =>
     {
         listenOptions.UseHttps(cert);
     });

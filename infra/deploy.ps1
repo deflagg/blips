@@ -3,7 +3,7 @@ param(
     [string]$Location          = "eastus2"
 )
 
-$TemplateFile   = Join-Path $PSScriptRoot 'main_temp.bicep'
+$TemplateFile   = Join-Path $PSScriptRoot 'main.bicep'
 $ParametersFile = Join-Path $PSScriptRoot 'main.parameters.json'
 $DnsForwarderScript = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
 

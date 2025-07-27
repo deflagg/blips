@@ -202,7 +202,7 @@ module appGwModule './modules/agw.bicep' = {
     vnetName                  : spoke1VnetName
     location                  : location
     keyVaultName              : keyVaultModule.outputs.keyVaultName
-    certSecretId   : addCertModule.outputs.certSecretId
+    certSecretId              : addCertModule.outputs.certSecretId
   }
   dependsOn: [
     spoke1VnetModule

@@ -183,6 +183,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
           }
         }
       }
+      // Optionally keep private if needed:
       // {
       //   name: 'appGwPrivateFrontendIp'
       //   properties: {
@@ -194,78 +195,12 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       // }
     ]
 
-    frontendPorts: [
-      {
-        name: 'port_443'
-        properties: {
-          port: 443
-        }
-      }
-    ]
-
-    backendAddressPools: [
-      {
-        name: 'myBackendPool'
-        properties: {}
-      }
-    ]
-
-    backendHttpSettingsCollection: [
-      {
-        name: 'myHTTPSetting'
-        properties: {
-          port: 443
-          protocol: 'Https'
-          cookieBasedAffinity: 'Disabled'
-          pickHostNameFromBackendAddress: false
-          requestTimeout: 20
-        }
-      }
-    ]
-    // get from Key Vault
+    // Optionally keep if pre-provisioning certs for AGIC to use:
     sslCertificates: [
       {
         name: 'appGwSslCert'
         properties: {
           keyVaultSecretId: pfxSecretUriWithVersion
-          
-        }
-      }
-    ]
-    httpListeners: [
-      {
-        name: 'myListener'
-        properties: {
-          protocol: 'Https'
-          frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
-          }
-          frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
-          }
-          requireServerNameIndication: false
-          sslCertificate: {
-            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName,'appGwSslCert')
-          }
-        }
-      }
-    ]
-
-    requestRoutingRules: [
-      {
-        name: 'myRoutingRule'
-        properties: {
-          ruleType: 'Basic'
-          priority: 1
-          httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, 'myListener')
-          }
-          backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, 'myBackendPool')
-          }
-          backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, 'myHTTPSetting')
-          }
         }
       }
     ]
@@ -276,6 +211,125 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       maxCapacity: 3
     }
   }
+  // properties: {
+  //   sku: {
+  //     name: 'Standard_v2'
+  //     tier: 'Standard_v2'
+  //   }
+
+  //   gatewayIPConfigurations: [
+  //     {
+  //       name: 'appGatewayIpConfig'
+  //       properties: {
+  //         subnet: {
+  //           id: appGwSubnetId
+  //         }
+  //       }
+  //     }
+  //   ]
+
+  //   frontendIPConfigurations: [
+  //     {
+  //       name: 'appGwPublicFrontendIp'
+  //       properties: {
+  //         publicIPAddress: {
+  //           id: publicIPAddress.id
+  //         }
+  //       }
+  //     }
+  //     // {
+  //     //   name: 'appGwPrivateFrontendIp'
+  //     //   properties: {
+  //     //     subnet: {
+  //     //       id: appGwSubnetId
+  //     //     }
+  //     //     privateIPAllocationMethod: 'Dynamic' // or 'Static' with privateIPAddress
+  //     //   }
+  //     // }
+  //   ]
+
+  //   frontendPorts: [
+  //     {
+  //       name: 'port_443'
+  //       properties: {
+  //         port: 443
+  //       }
+  //     }
+  //   ]
+
+  //   backendAddressPools: [
+  //     {
+  //       name: 'myBackendPool'
+  //       properties: {}
+  //     }
+  //   ]
+
+  //   backendHttpSettingsCollection: [
+  //     {
+  //       name: 'myHTTPSetting'
+  //       properties: {
+  //         port: 443
+  //         protocol: 'Https'
+  //         cookieBasedAffinity: 'Disabled'
+  //         pickHostNameFromBackendAddress: false
+  //         requestTimeout: 20
+  //       }
+  //     }
+  //   ]
+  //   // get from Key Vault
+  //   sslCertificates: [
+  //     {
+  //       name: 'appGwSslCert'
+  //       properties: {
+  //         keyVaultSecretId: pfxSecretUriWithVersion
+          
+  //       }
+  //     }
+  //   ]
+  //   httpListeners: [
+  //     {
+  //       name: 'myListener'
+  //       properties: {
+  //         protocol: 'Https'
+  //         frontendIPConfiguration: {
+  //           id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
+  //         }
+  //         frontendPort: {
+  //           id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
+  //         }
+  //         requireServerNameIndication: false
+  //         sslCertificate: {
+  //           id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName,'appGwSslCert')
+  //         }
+  //       }
+  //     }
+  //   ]
+
+  //   requestRoutingRules: [
+  //     {
+  //       name: 'myRoutingRule'
+  //       properties: {
+  //         ruleType: 'Basic'
+  //         priority: 1
+  //         httpListener: {
+  //           id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, 'myListener')
+  //         }
+  //         backendAddressPool: {
+  //           id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, 'myBackendPool')
+  //         }
+  //         backendHttpSettings: {
+  //           id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, 'myHTTPSetting')
+  //         }
+  //       }
+  //     }
+  //   ]
+
+  //   enableHttp2: false
+  //   autoscaleConfiguration: {
+  //     minCapacity: 0
+  //     maxCapacity: 3
+  //   }
+  // }
 }
 
 

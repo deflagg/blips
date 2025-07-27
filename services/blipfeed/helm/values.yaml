@@ -103,6 +103,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
+azureTenantId: "35d231ad-d70d-43bf-bc50-c2e8bbc10537"
+azureWorkloadIdentity:
+  clientId: ""
+
 keyvault:
   name: kv-primary-sysdesign
   secretObjects:  # Sync Key Vault cert to Kubernetes Secret for Ingress
@@ -113,9 +117,6 @@ keyvault:
           key: tls.crt
         - objectName: azure-aks-appgw-pfx-base64
           key: tls.key
-azureTenantId: "35d231ad-d70d-43bf-bc50-c2e8bbc10537"
-azureWorkloadIdentity:
-  clientId: ""
 
 volumes:
   - name: kv-secrets

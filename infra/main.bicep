@@ -186,6 +186,9 @@ module addCertModule './modules/addCertificateToKeyValut.bicep' = {
     pfxPassword: ''
     location: location
   }
+  dependsOn: [
+    keyVaultModule
+  ]
 }
 
 // --------------------------------------------------

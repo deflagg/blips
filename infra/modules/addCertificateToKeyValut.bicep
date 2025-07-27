@@ -59,7 +59,7 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
 
       # Decode base64 to temp PFX file
       $pfxBytes = [Convert]::FromBase64String($PfxBase64)
-      $pfxPath = "$env:TEMP\cert.pfx"
+      $pfxPath = [System.IO.Path]::Combine($env:TEMP, 'cert.pfx')
       [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
 
       # Import to Key Vault as certificate

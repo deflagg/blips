@@ -185,24 +185,6 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       }
     ]
 
-    frontendPorts: [
-      {
-        name: 'port_443'
-        properties: {
-          port: 443
-        }
-      }
-    ]
-
-    // Optionally keep if pre-provisioning certs for AGIC to use:
-    sslCertificates: [
-      {
-        name: 'appGwSslCert'
-        properties: {
-          keyVaultSecretId: pfxSecretUriWithVersion
-        }
-      }
-    ]
 
     enableHttp2: false
     autoscaleConfiguration: {

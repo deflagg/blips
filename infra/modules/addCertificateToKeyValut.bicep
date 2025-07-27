@@ -17,12 +17,22 @@ resource scriptIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2025-0
 }
 
 // Assign role to identity (Key Vault Certificate Officer)
-resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, scriptIdentity.id, 'KeyVaultCertificateOfficer')
+resource kvSecretOfficerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, scriptIdentity.id, 'kv-certificates-officer')
   scope: keyVault
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a4417e6f-fecd-4de8-b567-7b0420556985')  // Key Vault Certificate Officer role ID
     principalId: scriptIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource kvUserOfficerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, scriptIdentity.id, 'kv-secrets-officer')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
+    principalId: scriptIdentity.properties.principalId 
     principalType: 'ServicePrincipal'
   }
 }
@@ -88,7 +98,8 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     arguments: '-VaultName ${keyVaultName} -CertName ${certificateName} -PfxBase64 "${pfxBase64}"'
   }
   dependsOn: [
-    roleAssignment
+    kvSecretOfficerRoleAssignment
+    kvUserOfficerRoleAssignment
   ]
 }
 

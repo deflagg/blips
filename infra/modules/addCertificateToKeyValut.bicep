@@ -2,7 +2,7 @@ param keyVaultName string
 param certificateName string = ''  // e.g., without -pfx-base64 suffix
 param pfxBase64 string = ''  // Secure parameter from your current secret
 @secure()
-param pfxPassword string = 'not used in script' 
+param pfxPassword string = ''  // Optional: Password for the PFX file (leave empty for password-less)
 param location string = resourceGroup().location
 
 // Your existing Key Vault resource (abbreviated)
@@ -47,7 +47,7 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
         [string]$VaultName,
         [string]$CertName,
         [string]$PfxBase64,
-        [securestring]$PfxPassword
+        [string]$PfxPassword = ''
       )
 
       # Decode base64 to temp PFX file
@@ -56,8 +56,12 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
 
       # Import to Key Vault as certificate
-      $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath 
-        # -Password $PfxPassword
+      if ([string]::IsNullOrEmpty($PfxPassword)) {
+        $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath
+      } else {
+        $securePassword = ConvertTo-SecureString -String $PfxPassword -AsPlainText -Force
+        $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath -Password $securePassword
+      }
 
       # Set output: Unversioned secret ID (trim version from SecretId)
       $DeploymentScriptOutputs = @{}

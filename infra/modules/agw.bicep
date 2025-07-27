@@ -157,6 +157,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
   // dependsOn: [
   //   waitForRbac
   // ]
+
   properties: {
     sku: {
       name: 'Standard_v2'
@@ -183,72 +184,98 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
           }
         }
       }
+      // {
+      //   name: 'appGwPrivateFrontendIp'
+      //   properties: {
+      //     subnet: {
+      //       id: appGwSubnetId
+      //     }
+      //     privateIPAllocationMethod: 'Dynamic' // or 'Static' with privateIPAddress
+      //   }
+      // }
+    ]
+
+    frontendPorts: [
+      {
+        name: 'port_443'
+        properties: {
+          port: 443
+        }
+      }
     ]
 
     backendAddressPools: [
       {
-        name: 'dummyPool'
+        name: 'myBackendPool'
         properties: {}
       }
     ]
+
     backendHttpSettingsCollection: [
       {
-        name: 'dummySettings'
+        name: 'myHTTPSetting'
         properties: {
-          port: 80
-          protocol: 'Http'
+          port: 443
+          protocol: 'Https'
           cookieBasedAffinity: 'Disabled'
-          requestTimeout: 30
+          pickHostNameFromBackendAddress: false
+          requestTimeout: 20
         }
       }
     ]
-    frontendPorts: [
+    // get from Key Vault
+    sslCertificates: [
       {
-        name: 'dummyPort'
+        name: 'appGwSslCert'
         properties: {
-          port: 80
+          keyVaultSecretId: pfxSecretUriWithVersion
+          
         }
       }
     ]
     httpListeners: [
       {
-        name: 'dummyListener'
+        name: 'myListener'
         properties: {
+          protocol: 'Https'
           frontendIPConfiguration: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'dummyPort')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
           }
-          protocol: 'Http'
+          requireServerNameIndication: false
+          sslCertificate: {
+            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName,'appGwSslCert')
+          }
         }
       }
     ]
+
     requestRoutingRules: [
       {
-        name: 'dummyRule'
+        name: 'myRoutingRule'
         properties: {
           ruleType: 'Basic'
-          priority: 1000  // High number to avoid priority conflicts with AGIC rules
+          priority: 1
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, 'dummyListener')
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, 'myListener')
           }
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, 'dummyPool')
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, 'myBackendPool')
           }
           backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, 'dummySettings')
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, 'myHTTPSetting')
           }
         }
       }
     ]
 
-
-    // enableHttp2: false
-    // autoscaleConfiguration: {
-    //   minCapacity: 0
-    //   maxCapacity: 3
-    // }
+    enableHttp2: false
+    autoscaleConfiguration: {
+      minCapacity: 0
+      maxCapacity: 3
+    }
   }
   // properties: {
   //   sku: {
@@ -369,6 +396,8 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
   //     maxCapacity: 3
   //   }
   // }
+
+
 }
 
 

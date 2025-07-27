@@ -39,7 +39,7 @@ builder.Services
 //     keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
 // );
 
-string pemPath = "/mnt/secrets/azure-aks-appgw-pfx";
+string pemPath = "/mnt/secrets/azure-aks-appgw-pfx.pfx";
 //string base64Pfx = File.ReadAllText(pemPath).Trim();
 //byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
 

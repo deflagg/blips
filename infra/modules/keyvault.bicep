@@ -22,14 +22,14 @@ param enableSoftDelete bool = true
 @description('Enable purge protection for the Key Vault.')
 param enablePurgeProtection bool = false
 
-// Optional: If you want to create secrets during deployment
-@description('Name of the secret for the base64-encoded PFX.')
-@secure()
-param pfxSecretName string = ''
+// // Optional: If you want to create secrets during deployment
+// @description('Name of the secret for the base64-encoded PFX.')
+// @secure()
+// param pfxSecretName string = ''
 
-@description('Value of the base64-encoded PFX secret.')
-@secure()
-param AZURE_AKS_APPGW_PFX_BASE64 string = ''
+// @description('Value of the base64-encoded PFX secret.')
+// @secure()
+// param AZURE_AKS_APPGW_PFX_BASE64 string = ''
 
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
@@ -57,17 +57,17 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' = {
 }
 
 // Optional: Create PFX secret if provided
-resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (!empty(pfxSecretName) && !empty(AZURE_AKS_APPGW_PFX_BASE64)) {
-  parent: keyVault
-  name: pfxSecretName
-  properties: {
-    value: AZURE_AKS_APPGW_PFX_BASE64
-    contentType: 'application/x‑pkcs12'
+// resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (!empty(pfxSecretName) && !empty(AZURE_AKS_APPGW_PFX_BASE64)) {
+//   parent: keyVault
+//   name: pfxSecretName
+//   properties: {
+//     value: AZURE_AKS_APPGW_PFX_BASE64
+//     contentType: 'application/x‑pkcs12'
     
-  }
-}
+//   }
+// }
 
 
 output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name
-output pfxSecretUriWithVersion string = pfxSecret.properties.secretUriWithVersion
+//output pfxSecretUriWithVersion string = pfxSecret.properties.secretUriWithVersion

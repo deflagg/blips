@@ -179,6 +179,17 @@ module keyVaultModule './modules/keyvault.bicep' = {
   }
 }
 
+module addCertModule './modules/addCertificateToKeyValut.bicep' = {
+  name: 'addCertModule'
+  params: {
+    keyVaultName: keyVaultName
+    certificateName: pfxSecretName
+    pfxBase64: AZURE_AKS_APPGW_PFX_BASE64
+    pfxPassword: ''
+    location: location
+  }
+}
+
 
 
 // --------------------------------------------------

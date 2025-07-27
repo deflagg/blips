@@ -39,11 +39,11 @@ builder.Services
 //     keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
 // );
 
-string base64PfxPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";
-string base64Pfx = File.ReadAllText(base64PfxPath).Trim();
-byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
+string pemPath = "/mnt/secrets/azure-aks-appgw-pfx";
+//string base64Pfx = File.ReadAllText(pemPath).Trim();
+//byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
 
-X509Certificate2 cert = X509Certificate2.CreateFromPemFile(base64PfxPath);
+X509Certificate2 cert = X509Certificate2.CreateFromPemFile(pemPath);
 
 builder.WebHost.UseKestrel(options =>
 {

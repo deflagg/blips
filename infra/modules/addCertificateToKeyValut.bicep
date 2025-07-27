@@ -56,27 +56,33 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       )
 
       $PfxPassword = $env:PfxPassword
-
-      # Decode base64 to temp PFX file
-      $pfxBytes = [Convert]::FromBase64String($PfxBase64)
-      $pfxPath = [System.IO.Path]::Combine($env:TEMP, 'cert.pfx')
-      [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
-
-      # Import to Key Vault as certificate
-      if ([string]::IsNullOrEmpty($PfxPassword)) {
-        $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath
-      } else {
-        $securePassword = ConvertTo-SecureString -String $PfxPassword -AsPlainText -Force
-        $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath -Password $securePassword
-      }
-
-      # Set output: Unversioned secret ID (trim version from SecretId)
       $DeploymentScriptOutputs = @{}
-      $unversionedSecretId = $cert.SecretId -replace '/[^/]+$', ''
-      $DeploymentScriptOutputs['certSecretId'] = $unversionedSecretId
+      $errorMessage = ''
 
-      # Clean up temp file
-      Remove-Item $pfxPath -Force
+      try {
+        # Decode base64 to temp PFX file using cross-platform path
+        $pfxBytes = [Convert]::FromBase64String($PfxBase64)
+        $pfxPath = [System.IO.Path]::Combine($env:TEMP, 'cert.pfx')
+        [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+
+        # Import to Key Vault as certificate
+        if ([string]::IsNullOrEmpty($PfxPassword)) {
+          $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath
+        } else {
+          $securePassword = ConvertTo-SecureString -String $PfxPassword -AsPlainText -Force
+          $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath -Password $securePassword
+        }
+
+        # Set output: Unversioned secret ID (trim version from SecretId)
+        $unversionedSecretId = $cert.SecretId -replace '/[^/]+$', ''
+        $DeploymentScriptOutputs['certSecretId'] = $unversionedSecretId
+
+        # Clean up temp file
+        Remove-Item $pfxPath -Force
+      } catch {
+        $errorMessage = $_.Exception.Message
+        $DeploymentScriptOutputs['error'] = $errorMessage
+      }
     '''
     arguments: '-VaultName ${keyVaultName} -CertName ${certificateName} -PfxBase64 "${pfxBase64}"'
   }
@@ -85,5 +91,6 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   ]
 }
 
-// Output the certificate's unversioned secret ID
+// Output the certificate's unversioned secret ID (or error if failed)
 output certSecretId string = importCertScript.properties.outputs.certSecretId
+output importError string = contains(importCertScript.properties.outputs, 'error') ? importCertScript.properties.outputs.error : ''

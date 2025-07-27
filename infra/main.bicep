@@ -158,7 +158,7 @@ param keyVaultName string = 'kv-primary-${projectName}'
 // Optional: Params for secrets (secure, so they can be passed at deployment time)
 @description('Name of the secret for the base64-encoded PFX.')
 @secure()
-param pfxSecretName string
+param pfxSecretName string = ''
 
 // passed in from GitHub environment secrets
 @description('Value of the base64-encoded PFX secret.')

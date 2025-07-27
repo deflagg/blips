@@ -154,9 +154,9 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       '${applicationGatewayIdentity.id}': {}
     }
   }
-  dependsOn: [
-    //waitForRbac
-  ]
+  // dependsOn: [
+  //   waitForRbac
+  // ]
   properties: {
     sku: {
       name: 'Standard_v2'
@@ -186,11 +186,11 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     ]
 
 
-    enableHttp2: false
-    autoscaleConfiguration: {
-      minCapacity: 0
-      maxCapacity: 3
-    }
+    // enableHttp2: false
+    // autoscaleConfiguration: {
+    //   minCapacity: 0
+    //   maxCapacity: 3
+    // }
   }
   // properties: {
   //   sku: {

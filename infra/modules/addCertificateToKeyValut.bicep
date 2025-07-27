@@ -2,7 +2,7 @@ param keyVaultName string
 param certificateName string = ''  // e.g., without -pfx-base64 suffix
 param pfxBase64 string = ''  // Secure parameter from your current secret
 @secure()
-param pfxPassword string = '' 
+param pfxPassword string = 'not used in script' 
 param location string = resourceGroup().location
 
 // Your existing Key Vault resource (abbreviated)

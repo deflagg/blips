@@ -118,21 +118,19 @@ keyvault:
   #       - objectName: azure-aks-appgw-pfx-base64
   #         key: tls.key
 
-# volumes:
-#   - name: kv-secrets
-#     csi:
-#       driver: secrets-store.csi.k8s.io
-#       readOnly: true
-#       volumeAttributes:
-#         secretProviderClass: blipfeed-kv
+volumes:
+  - name: kv-secrets
+    csi:
+      driver: secrets-store.csi.k8s.io
+      readOnly: true
+      volumeAttributes:
+        secretProviderClass: blipfeed-kv
 
-# volumeMounts:
-#   - name: kv-secrets
-#     mountPath: /mnt/secrets
-#     readOnly: true
+volumeMounts:
+  - name: kv-secrets
+    mountPath: /mnt/secrets
+    readOnly: true
 
-volumes: []
-volumeMounts: []
 
 nodeSelector: {}
 

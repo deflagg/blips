@@ -185,6 +185,64 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       }
     ]
 
+    backendAddressPools: [
+      {
+        name: 'dummyPool'
+        properties: {}
+      }
+    ]
+    backendHttpSettingsCollection: [
+      {
+        name: 'dummySettings'
+        properties: {
+          port: 80
+          protocol: 'Http'
+          cookieBasedAffinity: 'Disabled'
+          requestTimeout: 30
+        }
+      }
+    ]
+    frontendPorts: [
+      {
+        name: 'dummyPort'
+        properties: {
+          port: 80
+        }
+      }
+    ]
+    httpListeners: [
+      {
+        name: 'dummyListener'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
+          }
+          frontendPort: {
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'dummyPort')
+          }
+          protocol: 'Http'
+        }
+      }
+    ]
+    requestRoutingRules: [
+      {
+        name: 'dummyRule'
+        properties: {
+          ruleType: 'Basic'
+          priority: 1000  // High number to avoid priority conflicts with AGIC rules
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', applicationGatewayName, 'dummyListener')
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', applicationGatewayName, 'dummyPool')
+          }
+          backendHttpSettings: {
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', applicationGatewayName, 'dummySettings')
+          }
+        }
+      }
+    ]
+
 
     // enableHttp2: false
     // autoscaleConfiguration: {

@@ -82,64 +82,64 @@ resource kvAccessPolicy 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 //   }
 // }
 
-resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: 'wait-for-rbac'
-  kind: 'AzurePowerShell'
-  location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${applicationGatewayIdentity.id}': {}
-    }
-  }
-  dependsOn: [
-    kvAccessPolicy
-  ]
+// resource waitForRbac 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+//   name: 'wait-for-rbac'
+//   kind: 'AzurePowerShell'
+//   location: location
+//   identity: {
+//     type: 'UserAssigned'
+//     userAssignedIdentities: {
+//       '${applicationGatewayIdentity.id}': {}
+//     }
+//   }
+//   dependsOn: [
+//     kvAccessPolicy
+//   ]
 
-  properties: {
-    azPowerShellVersion: '14.0.0'
-    arguments: '-clientId ${applicationGatewayIdentity.properties.clientId} -pfxSecretUriWithVersion "${pfxSecretUriWithVersion}"'
-    scriptContent: '''
-      param(
-        [string]$clientId,
-        [string]$pfxSecretUriWithVersion
-      )
+//   properties: {
+//     azPowerShellVersion: '14.0.0'
+//     arguments: '-clientId ${applicationGatewayIdentity.properties.clientId} -pfxSecretUriWithVersion "${pfxSecretUriWithVersion}"'
+//     scriptContent: '''
+//       param(
+//         [string]$clientId,
+//         [string]$pfxSecretUriWithVersion
+//       )
 
-      Connect-AzAccount -Identity -AccountId $clientId
+//       Connect-AzAccount -Identity -AccountId $clientId
 
-      $uri = [Uri]$pfxSecretUriWithVersion
-      $segments = $uri.Segments
-      $secretName = $segments[2].TrimEnd('/')
-      $version = $segments[3].TrimEnd('/')
+//       $uri = [Uri]$pfxSecretUriWithVersion
+//       $segments = $uri.Segments
+//       $secretName = $segments[2].TrimEnd('/')
+//       $version = $segments[3].TrimEnd('/')
 
-      $maxAttempts = 120  # 120 attempts x 20 seconds = 3600 seconds = 1 hour
-      $attempt = 0
+//       $maxAttempts = 120  # 120 attempts x 20 seconds = 3600 seconds = 1 hour
+//       $attempt = 0
 
-      Start-Sleep -Seconds 60
+//       Start-Sleep -Seconds 60
 
-      while ($attempt -lt $maxAttempts) {
-        try {
-          $secretValue = Get-AzKeyVaultSecret -VaultName $uri.Host.Split('.')[0] -Name $secretName -Version $version -AsPlainText -ErrorAction Stop
-          Write-Host "Retrieved secret value: $secretValue"
-          Write-Host "Secret access successful. RBAC has propagated."
-          Write-Host "Duration: $($attempt * 20) seconds"
-          break
-        } catch {
-          Write-Host "Attempt $attempt failed: $($_.Exception.Message)"
-          Start-Sleep -Seconds 30
-        }
-        $attempt++
-      }
+//       while ($attempt -lt $maxAttempts) {
+//         try {
+//           $secretValue = Get-AzKeyVaultSecret -VaultName $uri.Host.Split('.')[0] -Name $secretName -Version $version -AsPlainText -ErrorAction Stop
+//           Write-Host "Retrieved secret value: $secretValue"
+//           Write-Host "Secret access successful. RBAC has propagated."
+//           Write-Host "Duration: $($attempt * 20) seconds"
+//           break
+//         } catch {
+//           Write-Host "Attempt $attempt failed: $($_.Exception.Message)"
+//           Start-Sleep -Seconds 30
+//         }
+//         $attempt++
+//       }
 
-      if ($attempt -eq $maxAttempts) {
-        throw "Failed to propagate RBAC after $maxAttempts attempts."
-      }
-    '''
-    timeout: 'PT60M'
-    cleanupPreference: 'OnSuccess'
-    retentionInterval: 'P1D'
-  }
-}
+//       if ($attempt -eq $maxAttempts) {
+//         throw "Failed to propagate RBAC after $maxAttempts attempts."
+//       }
+//     '''
+//     timeout: 'PT60M'
+//     cleanupPreference: 'OnSuccess'
+//     retentionInterval: 'P1D'
+//   }
+// }
 
 
 // -----------------------------------------------------------------------------
@@ -155,7 +155,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
     }
   }
   dependsOn: [
-    waitForRbac
+    //waitForRbac
   ]
   properties: {
     sku: {
@@ -183,16 +183,15 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
           }
         }
       }
-      // Optionally keep private if needed:
-      // {
-      //   name: 'appGwPrivateFrontendIp'
-      //   properties: {
-      //     subnet: {
-      //       id: appGwSubnetId
-      //     }
-      //     privateIPAllocationMethod: 'Dynamic' // or 'Static' with privateIPAddress
-      //   }
-      // }
+    ]
+
+    frontendPorts: [
+      {
+        name: 'port_443'
+        properties: {
+          port: 443
+        }
+      }
     ]
 
     // Optionally keep if pre-provisioning certs for AGIC to use:

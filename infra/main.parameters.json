@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "pfxSecretName": {
-      "value": "azure-aks-appgw-pfx-base64"
+      "value": "azure-aks-appgw-pfx"
     }
   }
 }

@@ -105,7 +105,7 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
 
 resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (!empty(certificateName) && !empty(pfxBase64)) {
   parent: keyVault
-  name: certificateName
+  name: '${certificateName}-base64'
   properties: {
     value: pfxBase64
     contentType: 'application/x-pkcs12'

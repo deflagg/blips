@@ -27,17 +27,23 @@ builder.Services
 //     });
 // });
 
-// Load base64-encoded passwordless PFX from mounted secret
+// // Load base64-encoded passwordless PFX from mounted secret
+// string base64PfxPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";
+// string base64Pfx = File.ReadAllText(base64PfxPath).Trim();
+// byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
+
+// // Load the PFX using the .NET 9 API (returns a single cert)
+// X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(
+//     pfxBytes,
+//     password: null,
+//     keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
+// );
+
 string base64PfxPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";
 string base64Pfx = File.ReadAllText(base64PfxPath).Trim();
 byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
 
-// Load the PFX using the .NET 9 API (returns a single cert)
-X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(
-    pfxBytes,
-    password: null,
-    keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
-);
+X509Certificate2 cert = X509Certificate2.CreateFromPemFile(base64PfxPath);
 
 builder.WebHost.UseKestrel(options =>
 {

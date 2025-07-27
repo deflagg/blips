@@ -92,6 +92,16 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   ]
 }
 
+resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (!empty(certificateName) && !empty(pfxBase64)) {
+  parent: keyVault
+  name: certificateName
+  properties: {
+    value: pfxBase64
+    contentType: 'application/x-pkcs12'
+    
+  }
+}
+
 // Output the certificate's unversioned secret ID (or error if failed)
 output certSecretId string = importCertScript.properties.outputs.certSecretId
 output importError string = contains(importCertScript.properties.outputs, 'error') ? importCertScript.properties.outputs.error : ''

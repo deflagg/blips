@@ -109,27 +109,30 @@ azureWorkloadIdentity:
 
 keyvault:
   name: kv-primary-sysdesign
-  secretObjects:  # Sync Key Vault cert to Kubernetes Secret for Ingress
-    - secretName: blipfeed-tls-secret
-      type: kubernetes.io/tls
-      data:
-        - objectName: azure-aks-appgw-pfx-base64
-          key: tls.crt
-        - objectName: azure-aks-appgw-pfx-base64
-          key: tls.key
+  # secretObjects:  # Sync Key Vault cert to Kubernetes Secret for Ingress
+  #   - secretName: blipfeed-tls-secret
+  #     type: kubernetes.io/tls
+  #     data:
+  #       - objectName: azure-aks-appgw-pfx-base64
+  #         key: tls.crt
+  #       - objectName: azure-aks-appgw-pfx-base64
+  #         key: tls.key
 
-volumes:
-  - name: kv-secrets
-    csi:
-      driver: secrets-store.csi.k8s.io
-      readOnly: true
-      volumeAttributes:
-        secretProviderClass: blipfeed-kv
+# volumes:
+#   - name: kv-secrets
+#     csi:
+#       driver: secrets-store.csi.k8s.io
+#       readOnly: true
+#       volumeAttributes:
+#         secretProviderClass: blipfeed-kv
 
-volumeMounts:
-  - name: kv-secrets
-    mountPath: /mnt/secrets
-    readOnly: true
+# volumeMounts:
+#   - name: kv-secrets
+#     mountPath: /mnt/secrets
+#     readOnly: true
+
+volumes: []
+volumeMounts: []
 
 nodeSelector: {}
 

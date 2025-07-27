@@ -1,8 +1,7 @@
 param keyVaultName string
-param certificateName string
-param pfxBase64 string
-@secure()
-param pfxPassword string
+param certificateName string = 'azure-aks-appgw'  // e.g., without -pfx-base64 suffix
+param pfxBase64 string = '<your-base64-encoded-pfx-content>'  // Secure parameter from your current secret
+param pfxPassword string = '<pfx-password-if-encrypted>'  // Secure parameter; empty string if none
 param location string = resourceGroup().location
 
 // Your existing Key Vault resource (abbreviated)
@@ -16,7 +15,7 @@ resource scriptIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-0
   location: location
 }
 
-// Assign role to identity (Contributor or Key Vault Certificate Officer)
+// Assign role to identity (Key Vault Certificate Officer)
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(keyVault.id, scriptIdentity.id, 'KeyVaultCertificateOfficer')
   scope: keyVault
@@ -27,7 +26,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-// Deployment script to import PFX as certificate
+// Deployment script to import PFX as certificate and output the secret ID
 resource importCertScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'import-kv-certificate'
   location: location
@@ -39,7 +38,7 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     }
   }
   properties: {
-    azPowerShellVersion: '14.0.0'
+    azPowerShellVersion: '10.4.1'  // Latest stable version
     retentionInterval: 'P1D'
     cleanupPreference: 'OnSuccess'
     scriptContent: '''
@@ -56,8 +55,12 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
 
       # Import to Key Vault as certificate
-      Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath 
-        # -Password (ConvertTo-SecureString $PfxPassword -AsPlainText -Force)
+      $cert = Import-AzKeyVaultCertificate -VaultName $VaultName -Name $CertName -FilePath $pfxPath -Password $PfxPassword
+
+      # Set output: Unversioned secret ID (trim version from SecretId)
+      $DeploymentScriptOutputs = @{}
+      $unversionedSecretId = $cert.SecretId -replace '/[^/]+$', ''
+      $DeploymentScriptOutputs['certSecretId'] = $unversionedSecretId
 
       # Clean up temp file
       Remove-Item $pfxPath -Force
@@ -68,3 +71,6 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     roleAssignment
   ]
 }
+
+// Output the certificate's unversioned secret ID
+output certSecretId string = importCertScript.properties.outputs.certSecretId

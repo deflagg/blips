@@ -174,8 +174,6 @@ module keyVaultModule './modules/keyvault.bicep' = {
     projectName: projectName
     location: location
     keyVaultName: keyVaultName
-    pfxSecretName: pfxSecretName
-    AZURE_AKS_APPGW_PFX_BASE64: AZURE_AKS_APPGW_PFX_BASE64
   }
 }
 
@@ -190,8 +188,6 @@ module addCertModule './modules/addCertificateToKeyValut.bicep' = {
   }
 }
 
-
-
 // --------------------------------------------------
 // App Gateway
 // --------------------------------------------------
@@ -203,7 +199,7 @@ module appGwModule './modules/agw.bicep' = {
     vnetName                  : spoke1VnetName
     location                  : location
     keyVaultName              : keyVaultModule.outputs.keyVaultName
-    pfxSecretUriWithVersion   : keyVaultModule.outputs.pfxSecretUriWithVersion
+    certSecretId   : addCertModule.outputs.certSecretId
   }
   dependsOn: [
     spoke1VnetModule
@@ -285,4 +281,4 @@ module logAnalyticsModule './modules/loganalytics.bicep' = {
 // --------------------------------------------------
 // output aksClusterId   string = aksModule.outputs.aksClusterId
 // output apimServiceId  string = apimModule.outputs.apimResourceId
-output pfxSecretUriWithVersion string = keyVaultModule.outputs.pfxSecretUriWithVersion
+//output pfxSecretUriWithVersion string = keyVaultModule.outputs.pfxSecretUriWithVersion

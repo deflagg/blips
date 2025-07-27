@@ -14,7 +14,7 @@ param location string = resourceGroup().location
 param keyVaultName string
 
 @description('ID of the secret for the base64-encoded PFX.')
-param pfxSecretUriWithVersion string
+param certSecretId string
 
 
 // -----------------------------------------------------------------------------

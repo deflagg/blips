@@ -199,7 +199,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'port_443'
         properties: {
-          port: 443
+          port: 80
         }
       }
     ]
@@ -215,8 +215,8 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'myHTTPSetting'
         properties: {
-          port: 443
-          protocol: 'Https'
+          port: 80
+          protocol: 'Http'
           cookieBasedAffinity: 'Disabled'
           pickHostNameFromBackendAddress: false
           requestTimeout: 20
@@ -224,20 +224,20 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       }
     ]
     // get from Key Vault
-    sslCertificates: [
-      {
-        name: 'appGwSslCert'
-        properties: {
-          keyVaultSecretId: pfxSecretUriWithVersion
+    // sslCertificates: [
+    //   {
+    //     name: 'appGwSslCert'
+    //     properties: {
+    //       keyVaultSecretId: pfxSecretUriWithVersion
           
-        }
-      }
-    ]
+    //     }
+    //   }
+    // ]
     httpListeners: [
       {
         name: 'myListener'
         properties: {
-          protocol: 'Https'
+          protocol: 'Http'
           frontendIPConfiguration: {
             id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', applicationGatewayName, 'appGwPublicFrontendIp')
           }
@@ -245,9 +245,9 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
             id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', applicationGatewayName, 'port_443')
           }
           requireServerNameIndication: false
-          sslCertificate: {
-            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName,'appGwSslCert')
-          }
+          // sslCertificate: {
+          //   id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', applicationGatewayName,'appGwSslCert')
+          // }
         }
       }
     ]

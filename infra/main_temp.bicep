@@ -48,54 +48,54 @@ param apimSubnetName string = 'apim-subnet'
 // --------------------------------------------------
 // Hub - VNet
 // --------------------------------------------------
-module hubVnetModule './modules/hubvnet.bicep' = {
-  name: 'hubVnetDeployment'
-  params: {
-    projectName : projectName
-    hubVnetName : hubVnetName
-    location    : location
-  }
-}
+// module hubVnetModule './modules/hubvnet.bicep' = {
+//   name: 'hubVnetDeployment'
+//   params: {
+//     projectName : projectName
+//     hubVnetName : hubVnetName
+//     location    : location
+//   }
+// }
 
 // --------------------------------------------------
 // Spoke1 - VNet
 // --------------------------------------------------
-module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
-  name: 'spoke1VnetDeployment'
-  params: {
-    projectName : projectName
-    vnetName    : spoke1VnetName
-    location    : location
-  }
-}
+// module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
+//   name: 'spoke1VnetDeployment'
+//   params: {
+//     projectName : projectName
+//     vnetName    : spoke1VnetName
+//     location    : location
+//   }
+// }
 
-module vnetPeering './modules/peering.bicep' = {
-  name: 'hubSpokePeering'
-  params: {
-    hubVnetName:           hubVnetModule.outputs.vnetName
-    spokeVnetName:         spoke1VnetModule.outputs.vnetName
-    hubVnetId:             hubVnetModule.outputs.vnetId
-    spokeVnetId:           spoke1VnetModule.outputs.vnetId
-    hubToSpokePeeringName: 'hub-to-spoke1'
-    spokeToHubPeeringName: 'spoke1-to-hub'
-  }
-  dependsOn: [
-    hubVnetModule
-    spoke1VnetModule
-  ]
-}
+// module vnetPeering './modules/peering.bicep' = {
+//   name: 'hubSpokePeering'
+//   params: {
+//     hubVnetName:           hubVnetModule.outputs.vnetName
+//     spokeVnetName:         spoke1VnetModule.outputs.vnetName
+//     hubVnetId:             hubVnetModule.outputs.vnetId
+//     spokeVnetId:           spoke1VnetModule.outputs.vnetId
+//     hubToSpokePeeringName: 'hub-to-spoke1'
+//     spokeToHubPeeringName: 'spoke1-to-hub'
+//   }
+//   dependsOn: [
+//     hubVnetModule
+//     spoke1VnetModule
+//   ]
+// }
 
 
 // -----------------------------------------------------------------------------
 //  MODULE: Public DNS Zone (Zone 1)
 // -----------------------------------------------------------------------------
-module dnsModule './modules/dns.bicep' = {
-  name: 'privateDnsDeployment'
-  params: {
-    dnsZoneName: dnsZoneName          // existing param
-    vnetId     : hubVnetModule.outputs.vnetId
-  }
-}
+// module dnsModule './modules/dns.bicep' = {
+//   name: 'privateDnsDeployment'
+//   params: {
+//     dnsZoneName: dnsZoneName          // existing param
+//     vnetId     : hubVnetModule.outputs.vnetId
+//   }
+// }
 
 // --------------------------------------------------
 // DNS Forwarder VM (Azure DNS Resolver is available but too expensive ($180/month) for this demo)

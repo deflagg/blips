@@ -42,13 +42,20 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     azPowerShellVersion: '14.0.0'  // Latest stable version
     retentionInterval: 'P1D'
     cleanupPreference: 'OnSuccess'
+    environmentVariables: [
+      {
+        name: 'PfxPassword'
+        secureValue: pfxPassword
+      }
+    ]
     scriptContent: '''
       param (
         [string]$VaultName,
         [string]$CertName,
-        [string]$PfxBase64,
-        [string]$PfxPassword = ''
+        [string]$PfxBase64
       )
+
+      $PfxPassword = $env:PfxPassword
 
       # Decode base64 to temp PFX file
       $pfxBytes = [Convert]::FromBase64String($PfxBase64)
@@ -71,7 +78,7 @@ resource importCertScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       # Clean up temp file
       Remove-Item $pfxPath -Force
     '''
-    arguments: '-VaultName ${keyVaultName} -CertName ${certificateName} -PfxBase64 "${pfxBase64}" -PfxPassword "${pfxPassword}"'
+    arguments: '-VaultName ${keyVaultName} -CertName ${certificateName} -PfxBase64 "${pfxBase64}"'
   }
   dependsOn: [
     roleAssignment

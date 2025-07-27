@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,16 +42,33 @@ builder.Services
 // );
 
 string certPath = "/mnt/secrets/azure-aks-appgw-pfx.pfx";
-//string base64Pfx = File.ReadAllText(pemPath).Trim();
-//byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
+// Load the full PFX chain
+// Load leaf cert with private key (efficient for .NET 6+)
+// Load full chain collection (no password; use null or empty string)
+X509Certificate2Collection fullChain = X509CertificateLoader.LoadPkcs12CollectionFromFile(certPath, null, X509KeyStorageFlags.Exportable);
 
-X509Certificate2 cert = X509CertificateLoader.LoadCertificateFromFile(certPath);
+// Find leaf cert with private key
+X509Certificate2? leafCert = fullChain.FirstOrDefault(c => c.HasPrivateKey);
+if (leafCert == null) throw new Exception("No certificate with private key found in PFX.");
+
+// Create additional chain (exclude leaf)
+var additionalChain = new X509Certificate2Collection(fullChain.Where(c => !c.Thumbprint.Equals(leafCert.Thumbprint)).ToArray());
+
+// Build reusable context (sends full chain)
+var serverCertContext = SslStreamCertificateContext.Create(leafCert, additionalChain, offline: true);
 
 builder.WebHost.UseKestrel(options =>
 {
     options.Listen(IPAddress.Any, 443, listenOptions =>
     {
-        listenOptions.UseHttps(cert);
+        listenOptions.UseHttps(new TlsHandshakeCallbackOptions
+        {
+            OnConnection = _ => new ValueTask<SslServerAuthenticationOptions>(
+                new SslServerAuthenticationOptions
+                {
+                    ServerCertificateContext = serverCertContext
+                })
+        });
     });
 });
 

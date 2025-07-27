@@ -91,7 +91,7 @@ if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
 Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
 
 # Wait for propagation
-#Start-Sleep -Seconds 120
+Start-Sleep -Seconds 120
 
 helm upgrade --install $release $chartPath `
   --namespace $namespace --create-namespace --atomic `

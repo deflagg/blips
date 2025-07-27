@@ -211,6 +211,15 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       }
     ]
 
+    trustedRootCertificates:[
+      {
+        name: 'aks-root-ca'
+        properties: {
+          keyVaultSecretId: 'https://${keyVaultName}.vault.azure.net/secrets/${certSecretId}'  // Use /certificates/ if stored as Certificate
+        }
+      }
+    ]
+
     backendHttpSettingsCollection: [
       {
         name: 'myHTTPSetting'

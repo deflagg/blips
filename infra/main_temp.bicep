@@ -45,57 +45,57 @@ param publisherName string = 'API Team'
 @description('Dedicated subnet name for APIM inside the VNet.')
 param apimSubnetName string = 'apim-subnet'
 
-// // --------------------------------------------------
-// // Hub - VNet
-// // --------------------------------------------------
-// module hubVnetModule './modules/hubvnet.bicep' = {
-//   name: 'hubVnetDeployment'
-//   params: {
-//     projectName : projectName
-//     hubVnetName : hubVnetName
-//     location    : location
-//   }
-// }
+// --------------------------------------------------
+// Hub - VNet
+// --------------------------------------------------
+module hubVnetModule './modules/hubvnet.bicep' = {
+  name: 'hubVnetDeployment'
+  params: {
+    projectName : projectName
+    hubVnetName : hubVnetName
+    location    : location
+  }
+}
 
-// // --------------------------------------------------
-// // Spoke1 - VNet
-// // --------------------------------------------------
-// module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
-//   name: 'spoke1VnetDeployment'
-//   params: {
-//     projectName : projectName
-//     vnetName    : spoke1VnetName
-//     location    : location
-//   }
-// }
+// --------------------------------------------------
+// Spoke1 - VNet
+// --------------------------------------------------
+module spoke1VnetModule './modules/spoke1Vnet.bicep' = {
+  name: 'spoke1VnetDeployment'
+  params: {
+    projectName : projectName
+    vnetName    : spoke1VnetName
+    location    : location
+  }
+}
 
-// module vnetPeering './modules/peering.bicep' = {
-//   name: 'hubSpokePeering'
-//   params: {
-//     hubVnetName:           hubVnetModule.outputs.vnetName
-//     spokeVnetName:         spoke1VnetModule.outputs.vnetName
-//     hubVnetId:             hubVnetModule.outputs.vnetId
-//     spokeVnetId:           spoke1VnetModule.outputs.vnetId
-//     hubToSpokePeeringName: 'hub-to-spoke1'
-//     spokeToHubPeeringName: 'spoke1-to-hub'
-//   }
-//   dependsOn: [
-//     hubVnetModule
-//     spoke1VnetModule
-//   ]
-// }
+module vnetPeering './modules/peering.bicep' = {
+  name: 'hubSpokePeering'
+  params: {
+    hubVnetName:           hubVnetModule.outputs.vnetName
+    spokeVnetName:         spoke1VnetModule.outputs.vnetName
+    hubVnetId:             hubVnetModule.outputs.vnetId
+    spokeVnetId:           spoke1VnetModule.outputs.vnetId
+    hubToSpokePeeringName: 'hub-to-spoke1'
+    spokeToHubPeeringName: 'spoke1-to-hub'
+  }
+  dependsOn: [
+    hubVnetModule
+    spoke1VnetModule
+  ]
+}
 
 
-// // -----------------------------------------------------------------------------
-// //  MODULE: Public DNS Zone (Zone 1)
-// // -----------------------------------------------------------------------------
-// module dnsModule './modules/dns.bicep' = {
-//   name: 'privateDnsDeployment'
-//   params: {
-//     dnsZoneName: dnsZoneName          // existing param
-//     vnetId     : hubVnetModule.outputs.vnetId
-//   }
-// }
+// -----------------------------------------------------------------------------
+//  MODULE: Public DNS Zone (Zone 1)
+// -----------------------------------------------------------------------------
+module dnsModule './modules/dns.bicep' = {
+  name: 'privateDnsDeployment'
+  params: {
+    dnsZoneName: dnsZoneName          // existing param
+    vnetId     : hubVnetModule.outputs.vnetId
+  }
+}
 
 // --------------------------------------------------
 // DNS Forwarder VM (Azure DNS Resolver is available but too expensive ($180/month) for this demo)
@@ -139,9 +139,9 @@ param apimSubnetName string = 'apim-subnet'
 // }
 
 
-// // --------------------------------------------------
-// // ACR
-// // --------------------------------------------------
+// --------------------------------------------------
+// ACR
+// --------------------------------------------------
 // module acrModule './modules/acr.bicep' = {
 //   name: 'acrDeployment'
 //   params: {
@@ -158,11 +158,10 @@ param keyVaultName string = 'kv-primary-${projectName}'
 // Optional: Params for secrets (secure, so they can be passed at deployment time)
 @description('Name of the secret for the base64-encoded PFX.')
 @secure()
-param pfxSecretName string
+param pfxSecretName string = ''
 
 // passed in from GitHub environment secrets
 @description('Value of the base64-encoded PFX secret.')
-@secure()
 param AZURE_AKS_APPGW_PFX_BASE64 string
 
 
@@ -175,25 +174,35 @@ module keyVaultModule './modules/keyvault.bicep' = {
     projectName: projectName
     location: location
     keyVaultName: keyVaultName
-    pfxSecretName: pfxSecretName
-    AZURE_AKS_APPGW_PFX_BASE64: AZURE_AKS_APPGW_PFX_BASE64
   }
 }
 
+module addCertModule './modules/addCertificateToKeyValut.bicep' = {
+  name: 'addCertModule'
+  params: {
+    keyVaultName: keyVaultName
+    certificateName: pfxSecretName
+    pfxBase64: AZURE_AKS_APPGW_PFX_BASE64
+    pfxPassword: ''
+    location: location
+  }
+  dependsOn: [
+    keyVaultModule
+  ]
+}
 
-
-// // --------------------------------------------------
-// // App Gateway
-// // --------------------------------------------------
+// --------------------------------------------------
+// App Gateway
+// --------------------------------------------------
 // module appGwModule './modules/agw.bicep' = {
 //   name: 'appGwDeployment'
 //   params: {
-//     projectName           : projectName
-//     applicationGatewayName: applicationGatewayName
-//     vnetName              : spoke1VnetName
-//     location              : location
-//     keyVaultName          : keyVaultModule.outputs.keyVaultName
-//     pfxSecretName         : pfxSecretName
+//     projectName               : projectName
+//     applicationGatewayName    : applicationGatewayName
+//     vnetName                  : spoke1VnetName
+//     location                  : location
+//     keyVaultName              : keyVaultModule.outputs.keyVaultName
+//     certSecretId   : addCertModule.outputs.certSecretId
 //   }
 //   dependsOn: [
 //     spoke1VnetModule
@@ -201,9 +210,9 @@ module keyVaultModule './modules/keyvault.bicep' = {
 // }
 
 
-// // --------------------------------------------------
-// // AKS
-// // --------------------------------------------------
+// --------------------------------------------------
+// AKS
+// --------------------------------------------------
 // module aksModule './modules/aks.bicep' = {
 //   name: 'aksDeployment'
 //   params: {
@@ -217,33 +226,34 @@ module keyVaultModule './modules/keyvault.bicep' = {
 //     appGatewayIdentityId   : appGwModule.outputs.appGatewayIdentityId
 //     aksClusterName         : aksClusterName
 //     dnsPrefix              : dnsPrefix
+//     keyVaultName           : keyVaultModule.outputs.keyVaultName
 //   }
 // }
 
-// // APIM sits in front of the App Gateway created by the AKS module.
-// // module apimModule './modules/apim.bicep' = {
-// //   name: 'apimDeployment'
-// //   params: {
-// //     apimName        : apimName
-// //     location        : location
-// //     publisherEmail  : publisherEmail
-// //     publisherName   : publisherName
-// //     // VNet containing both AKS & App Gateway (resource already created by aksModule)
-// //     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', hubVnetName)
-// //     subnetName      : apimSubnetName
-// //     // Forward traffic from APIM to the App Gateway listener
-// //     appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
-// //     apimStaticIp    : apimStaticIp // Static IP for the APIM private endpoint (PE)
-// //   }
-// //   dependsOn: [
-// //     //appGwModule // ensure App Gateway exists before APIM backend registration
-// //     dnsModule
-// //   ]
-// // }
+// APIM sits in front of the App Gateway created by the AKS module.
+// module apimModule './modules/apim.bicep' = {
+//   name: 'apimDeployment'
+//   params: {
+//     apimName        : apimName
+//     location        : location
+//     publisherEmail  : publisherEmail
+//     publisherName   : publisherName
+//     // VNet containing both AKS & App Gateway (resource already created by aksModule)
+//     vnetResourceId  : resourceId('Microsoft.Network/virtualNetworks', hubVnetName)
+//     subnetName      : apimSubnetName
+//     // Forward traffic from APIM to the App Gateway listener
+//     appGatewayFqdn  : 'www.theblips.com' //applicationGatewayName // adjust if you use a different DNS label
+//     apimStaticIp    : apimStaticIp // Static IP for the APIM private endpoint (PE)
+//   }
+//   dependsOn: [
+//     //appGwModule // ensure App Gateway exists before APIM backend registration
+//     dnsModule
+//   ]
+// }
 
-// // --------------------------------------------------
-// // App Service
-// // --------------------------------------------------
+// --------------------------------------------------
+// App Service
+// --------------------------------------------------
 // module web './modules/appsvc.bicep' = {
 //   name: 'webAppModule'
 //   params: {
@@ -274,3 +284,4 @@ module keyVaultModule './modules/keyvault.bicep' = {
 // --------------------------------------------------
 // output aksClusterId   string = aksModule.outputs.aksClusterId
 // output apimServiceId  string = apimModule.outputs.apimResourceId
+//output pfxSecretUriWithVersion string = keyVaultModule.outputs.pfxSecretUriWithVersion

@@ -123,6 +123,16 @@ resource aksKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 }
 
 
+resource aksKvCertificatesUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, 'kv-certificates-user')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
+    principalId: aksClusterIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 
 
 // resource csiKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

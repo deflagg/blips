@@ -210,7 +210,7 @@ module appGwModule './modules/agw.bicep' = {
     vnetName                  : spoke1VnetName
     location                  : location
     keyVaultName              : keyVaultModule.outputs.keyVaultName
-    certSecretId              : addCertModule.outputs.certSecretId
+    certSecretId              : azureAksAppgwChainPfxBase64Name
     rootCertName              : azureAksAppgwRootCertBase64Name
   }
   dependsOn: [

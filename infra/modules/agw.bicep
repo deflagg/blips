@@ -236,15 +236,14 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       }
     ]
     // get from Key Vault
-    // sslCertificates: [
-    //   {
-    //     name: 'appGwSslCert'
-    //     properties: {
-    //       keyVaultSecretId: pfxSecretUriWithVersion
-          
-    //     }
-    //   }
-    // ]
+    sslCertificates: [
+      {
+        name: 'appGwSslCert'
+        properties: {
+          keyVaultSecretId: 'https://${keyVaultName}.vault.azure.net/certificates/${certSecretId}'
+        }
+      }
+    ]
     httpListeners: [
       {
         name: 'myListener'
@@ -351,7 +350,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
   //         cookieBasedAffinity: 'Disabled'
   //         pickHostNameFromBackendAddress: false
   //         requestTimeout: 20
-  //       }
+  //       }  
   //     }
   //   ]
   //   // get from Key Vault

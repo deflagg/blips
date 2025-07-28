@@ -55,7 +55,7 @@ ingress:
     appgw.ingress.kubernetes.io/use-private-ip: "false"  # Use public IP (set to "true" if private IP needed)
     appgw.ingress.kubernetes.io/backend-protocol: "https"  # Backend is HTTPS on port 443
     appgw.ingress.kubernetes.io/appgw-trusted-root-certificate: "aks-root-ca"  # Use the root CA for TLS termination
-    appgw.ingress.kubernetes.io/appgw-ssl-certificate: "azure-aks-appgw-chain-pfx-base64"
+    #appgw.ingress.kubernetes.io/appgw-ssl-certificate: "azure-aks-appgw-chain-pfx-base64"
   hosts:
     - host: blipfeed.blips.service
       paths:

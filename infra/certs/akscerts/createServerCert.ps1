@@ -60,6 +60,6 @@ Get-Content "$ServerName.cer","$RootName.cer" | Set-Content "$ServerName.chain.c
 # ---------- Base-64 for Bicep ----------
 $bytes = Get-Content ".\$ServerName.pfx" -Encoding Byte
 [Convert]::ToBase64String($bytes) |
-    Set-Content "$ServerName`_pfx_base64.txt" -Encoding ascii
+    Set-Content "$ServerName`_chain_pfx_base64.txt" -Encoding ascii
 
 Write-Host "`nBase-64 PFX saved to $ServerName`_pfx_base64.txt"

@@ -45,6 +45,9 @@ param publisherName string = 'API Team'
 @description('Dedicated subnet name for APIM inside the VNet.')
 param apimSubnetName string = 'apim-subnet'
 
+@description('AKS root CA certificate in base64 format.')
+param azureAksAppgwRootCertBase64Name string
+
 // --------------------------------------------------
 // Hub - VNet
 // --------------------------------------------------
@@ -158,11 +161,14 @@ param keyVaultName string = 'kv-primary-${projectName}'
 // Optional: Params for secrets (secure, so they can be passed at deployment time)
 @description('Name of the secret for the base64-encoded PFX.')
 @secure()
-param pfxSecretName string = ''
+param azureAksAppgwChainPfxBase64Name string = ''
 
 // passed in from GitHub environment secrets
 @description('Value of the base64-encoded PFX secret.')
 param AZURE_AKS_APPGW_PFX_BASE64 string
+
+@description('Value of the base64-encoded root CA certificate.')
+param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
 
 
 // --------------------------------------------------
@@ -177,11 +183,13 @@ module keyVaultModule './modules/keyvault.bicep' = {
   }
 }
 
-module addCertModule './modules/addCertificateToKeyValut.bicep' = {
+module addCertModule './modules/addAksCerts.bicep' = {
   name: 'addCertModule'
   params: {
     keyVaultName: keyVaultName
-    certificateName: pfxSecretName
+    azureAksAppgwRootCertBase64Name: azureAksAppgwRootCertBase64Name
+    rootCertBase64: AZURE_AKS_APPGW_ROOT_CERT_BASE64
+    certificateName: azureAksAppgwChainPfxBase64Name
     pfxBase64: AZURE_AKS_APPGW_PFX_BASE64
     pfxPassword: ''
     location: location
@@ -203,6 +211,7 @@ module appGwModule './modules/agw.bicep' = {
     location                  : location
     keyVaultName              : keyVaultModule.outputs.keyVaultName
     certSecretId              : addCertModule.outputs.certSecretId
+    rootCertName              : azureAksAppgwRootCertBase64Name
   }
   dependsOn: [
     spoke1VnetModule

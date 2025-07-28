@@ -16,6 +16,9 @@ param keyVaultName string
 @description('ID of the secret for the base64-encoded PFX.')
 param certSecretId string
 
+@description('Name of the root certificate secret in Key Vault.')
+param rootCertName string
+
 
 // -----------------------------------------------------------------------------
 // Common IDs
@@ -215,7 +218,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'aks-root-ca'
         properties: {
-          keyVaultSecretId: 'https://${keyVaultName}.vault.azure.net/secrets/${certSecretId}'  // Use /certificates/ if stored as Certificate
+          keyVaultSecretId: 'https://${keyVaultName}.vault.azure.net/secrets/${rootCertName}' 
         }
       }
     ]

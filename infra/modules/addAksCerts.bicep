@@ -5,6 +5,9 @@ param pfxBase64 string = ''  // Secure parameter from your current secret
 param pfxPassword string = ''  // Optional: Password for the PFX file (leave empty for password-less)
 param location string = resourceGroup().location
 
+param azureAksAppgwRootCertBase64Name string 
+param rootCertBase64 string = ''  // Base64-encoded root CA certificate, if needed
+
 // Your existing Key Vault resource (abbreviated)
 resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
   name: keyVaultName
@@ -108,6 +111,16 @@ resource pfxSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (
   name: '${certificateName}-base64'
   properties: {
     value: pfxBase64
+    contentType: 'application/x-pkcs12'
+    
+  }
+}
+
+resource rootCertSecret 'Microsoft.KeyVault/vaults/secrets@2024-12-01-preview' = if (!empty(azureAksAppgwRootCertBase64Name) && !empty(rootCertBase64)) {
+  parent: keyVault
+  name: azureAksAppgwRootCertBase64Name
+  properties: {
+    value: rootCertBase64
     contentType: 'application/x-pkcs12'
     
   }

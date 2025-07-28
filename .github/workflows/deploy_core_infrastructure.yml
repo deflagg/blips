@@ -44,7 +44,8 @@ jobs:
     - name: Run deploy.ps1
       uses: azure/powershell@v2
       env:
-          AZURE_AKS_APPGW_PFX_BASE64: ${{ secrets.AZURE_AKS_APPGW_PFX_BASE64 }}
+          AZURE_AKS_APPGW_CHAIN_PFX_BASE64: ${{ secrets.AZURE_AKS_APPGW_CHAIN_PFX_BASE64 }}
+          AZURE_AKS_APPGW_ROOT_CERT_BASE64: ${{ secrets.AZURE_AKS_APPGW_ROOT_CERT_BASE64 }}
       with:
         azPSVersion: "latest"
         inlineScript: |

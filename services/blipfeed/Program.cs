@@ -41,7 +41,7 @@
     //     keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
     // );
 
-    string certPath = "/mnt/secrets/azure-aks-appgw-pfx.pfx";
+    string certPath = "/mnt/secrets/azure-aks-appgw-chain-pfx.pfx";
     // Load the full PFX chain
     // Load leaf cert with private key (efficient for .NET 6+)
     // Load full chain collection (no password; use null or empty string)

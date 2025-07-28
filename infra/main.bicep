@@ -165,7 +165,7 @@ param azureAksAppgwChainPfxBase64Name string = ''
 
 // passed in from GitHub environment secrets
 @description('Value of the base64-encoded PFX secret.')
-param AZURE_AKS_APPGW_PFX_BASE64 string
+param AZURE_AKS_APPGW_CHAIN_PFX_BASE64 string
 
 @description('Value of the base64-encoded root CA certificate.')
 param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
@@ -190,7 +190,7 @@ module addCertModule './modules/addAksCerts.bicep' = {
     azureAksAppgwRootCertBase64Name: azureAksAppgwRootCertBase64Name
     rootCertBase64: AZURE_AKS_APPGW_ROOT_CERT_BASE64
     certificateName: azureAksAppgwChainPfxBase64Name
-    pfxBase64: AZURE_AKS_APPGW_PFX_BASE64
+    pfxBase64: AZURE_AKS_APPGW_CHAIN_PFX_BASE64
     pfxPassword: ''
     location: location
   }

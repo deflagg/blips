@@ -240,7 +240,7 @@ resource applicationGateway 'Microsoft.Network/applicationGateways@2024-05-01' =
       {
         name: 'appGwSslCert'
         properties: {
-          keyVaultSecretId: 'https://${keyVaultName}.vault.azure.net/certificates/${certSecretId}'
+          keyVaultSecretId: 'https://${keyVaultName}.vault.azure.net/secrets/${certSecretId}-base64'
         }
       }
     ]

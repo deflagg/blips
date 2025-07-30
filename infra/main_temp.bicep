@@ -6,44 +6,44 @@ param projectName string = 'sysdesign'
 @description('Azure region for all resources.')
 param location string = resourceGroup().location
 
-@description('Existing or new ACR name.')
-param containerRegistryName string = 'acr${projectName}'
+// @description('Existing or new ACR name.')
+// param containerRegistryName string = 'acr${projectName}'
 
 
 
-@description('ACR SKU')
-@allowed([
-  'Basic'
-  'Standard'
-  'Premium'
-])
-param containerRegistrySku string = 'Basic'
+// @description('ACR SKU')
+// @allowed([
+//   'Basic'
+//   'Standard'
+//   'Premium'
+// ])
+// param containerRegistrySku string = 'Basic'
 
-// You asked for “everything in infrastructure_definition” to live in aks.bicep
-// so we forward only those parameters actually defined there.
-param hubVnetName            string = 'hubvnet-${projectName}'
-param spoke1VnetName         string = 'spoke1Vnet-${projectName}'
-param applicationGatewayName string = 'appgateway-${projectName}'
-param aksClusterName         string = 'aks-${projectName}'
-param dnsPrefix              string =  projectName
-param dnsZoneName            string = 'priv.${dnsPrefix}.com'
+// // You asked for “everything in infrastructure_definition” to live in aks.bicep
+// // so we forward only those parameters actually defined there.
+// param hubVnetName            string = 'hubvnet-${projectName}'
+// param spoke1VnetName         string = 'spoke1Vnet-${projectName}'
+// param applicationGatewayName string = 'appgateway-${projectName}'
+// param aksClusterName         string = 'aks-${projectName}'
+// param dnsPrefix              string =  projectName
+// param dnsZoneName            string = 'priv.${dnsPrefix}.com'
 
-var apimStaticIp             string = '10.1.3.4'
+// var apimStaticIp             string = '10.1.3.4'
 
-// --------------------------------------------------
-// APIM – extra parameters (only what the module needs)
-// --------------------------------------------------
-@description('Name of the API Management instance.')
-param apimName string = 'apim-${projectName}'
+// // --------------------------------------------------
+// // APIM – extra parameters (only what the module needs)
+// // --------------------------------------------------
+// @description('Name of the API Management instance.')
+// param apimName string = 'apim-${projectName}'
 
-@description('Email of the APIM publisher (required).')
-param publisherEmail string = 'api-admin@example.com'
+// @description('Email of the APIM publisher (required).')
+// param publisherEmail string = 'api-admin@example.com'
 
-@description('Display name of the APIM publisher (required).')
-param publisherName string = 'API Team'
+// @description('Display name of the APIM publisher (required).')
+// param publisherName string = 'API Team'
 
-@description('Dedicated subnet name for APIM inside the VNet.')
-param apimSubnetName string = 'apim-subnet'
+// @description('Dedicated subnet name for APIM inside the VNet.')
+// param apimSubnetName string = 'apim-subnet'
 
 // --------------------------------------------------
 // Hub - VNet
@@ -155,14 +155,14 @@ param apimSubnetName string = 'apim-subnet'
 @description('Name of the Key Vault.')
 param keyVaultName string = 'kv-primary-${projectName}'
 
-// Optional: Params for secrets (secure, so they can be passed at deployment time)
-@description('Name of the secret for the base64-encoded PFX.')
-@secure()
-param pfxSecretName string = ''
+// // Optional: Params for secrets (secure, so they can be passed at deployment time)
+// @description('Name of the secret for the base64-encoded PFX.')
+// @secure()
+// param pfxSecretName string = ''
 
-// passed in from GitHub environment secrets
-@description('Value of the base64-encoded PFX secret.')
-param AZURE_AKS_APPGW_PFX_BASE64 string
+// // passed in from GitHub environment secrets
+// @description('Value of the base64-encoded PFX secret.')
+// param AZURE_AKS_APPGW_PFX_BASE64 string
 
 
 // --------------------------------------------------
@@ -177,19 +177,19 @@ module keyVaultModule './modules/keyvault.bicep' = {
   }
 }
 
-module addCertModule './modules/addCertificateToKeyValut.bicep' = {
-  name: 'addCertModule'
-  params: {
-    keyVaultName: keyVaultName
-    certificateName: pfxSecretName
-    pfxBase64: AZURE_AKS_APPGW_PFX_BASE64
-    pfxPassword: ''
-    location: location
-  }
-  dependsOn: [
-    keyVaultModule
-  ]
-}
+// module addCertModule './modules/addCertificateToKeyValut.bicep' = {
+//   name: 'addCertModule'
+//   params: {
+//     keyVaultName: keyVaultName
+//     certificateName: pfxSecretName
+//     pfxBase64: AZURE_AKS_APPGW_PFX_BASE64
+//     pfxPassword: ''
+//     location: location
+//   }
+//   dependsOn: [
+//     keyVaultModule
+//   ]
+// }
 
 // --------------------------------------------------
 // App Gateway

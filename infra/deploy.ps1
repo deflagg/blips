@@ -32,6 +32,8 @@ az stack group create `
     --parameters AZURE_AKS_APPGW_ROOT_CERT_BASE64=$env:AZURE_AKS_APPGW_ROOT_CERT_BASE64 `
                  @$ParametersFile
 
+if ($LASTEXITCODE) { throw "Stack deployment failed." }
+
 
 Write-Host "`n➤ Running install-dns-forwarder.sh on $vmName ..."
 $scriptPath = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
@@ -41,3 +43,5 @@ az vm run-command invoke `
     --command-id      RunShellScript `
     --scripts         "@$scriptPath" `
     --output          table
+
+if ($LASTEXITCODE) { throw "DNS forwarder installation failed." }

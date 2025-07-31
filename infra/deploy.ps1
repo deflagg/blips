@@ -12,11 +12,10 @@ az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
 Write-Host "`n➤ Creating resource group $ResourceGroupName in $Location ..."
 az group create `
     --name     $ResourceGroupName `
-    --location $Location | Out-Null
-    #add multiple tags
+    --location $Location `
     --tags 'env=dev' `
            'app=blips' `
-           'costcenter=primary'
+           'costcenter=primary' | Out-Null 
 
 
 Write-Host "`n➤ Deploying infrastructure stack via $TemplateFile ..."

@@ -16,6 +16,8 @@ $agwIp       = "20.57.68.47"           # Application Gateway public IP
 
 Set-Location -Path "./services/${imageName}"
 
+az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
+
 # --------------------------------------------------------------------------
 # 1. Login to Azure Container Registry
 # --------------------------------------------------------------------------

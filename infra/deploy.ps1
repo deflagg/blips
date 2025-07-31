@@ -1,11 +1,13 @@
 param(
-    [string]$ResourceGroupName = "sysdesign",
+    [string]$ResourceGroupName = "sysdesign-dev",
     [string]$Location          = "eastus2"
 )
 
 $TemplateFile   = Join-Path $PSScriptRoot 'main_temp.bicep'
 $ParametersFile = Join-Path $PSScriptRoot 'main.parameters.json'
 $DnsForwarderScript = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
+
+az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
 
 Write-Host "`n➤ Creating resource group $ResourceGroupName in $Location ..."
 az group create `

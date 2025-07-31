@@ -13,6 +13,10 @@ Write-Host "`n➤ Creating resource group $ResourceGroupName in $Location ..."
 az group create `
     --name     $ResourceGroupName `
     --location $Location | Out-Null
+    #add multiple tags
+    --tags 'env=dev' `
+           'app=blips' `
+           'costcenter=primary'
 
 
 Write-Host "`n➤ Deploying infrastructure stack via $TemplateFile ..."

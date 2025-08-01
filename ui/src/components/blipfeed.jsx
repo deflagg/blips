@@ -10,7 +10,7 @@ function BlipFeed() {
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        console.log('Fetching feed from http://blipfeed.blips.service/weatherforecast');
+        console.log('Fetching feed from https://blipfeed.blips.service/weatherforecast');
         const response = await fetch('https://blipfeed.blips.service/weatherforecast');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

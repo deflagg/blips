@@ -1,5 +1,5 @@
 param(
-    [string]$ResourceGroupName = "sysdesign-dev",
+    [string]$ResourceGroupName = "sysdesign",
     [string]$Location          = "eastus2"
 )
 

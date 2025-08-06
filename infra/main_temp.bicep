@@ -155,20 +155,20 @@ param azureAksAppgwRootCertBase64Name string
 //   }
 // }
 
-// @description('Name of the Key Vault.')
-// param keyVaultName string = 'kv-primary-${projectName}'
+@description('Name of the Key Vault.')
+param keyVaultName string = 'kv-primary-${projectName}'
 
-// // Optional: Params for secrets (secure, so they can be passed at deployment time)
-// @description('Name of the secret for the base64-encoded PFX.')
-// @secure()
-// param azureAksAppgwChainPfxBase64Name string = ''
+// Optional: Params for secrets (secure, so they can be passed at deployment time)
+@description('Name of the secret for the base64-encoded PFX.')
+@secure()
+param azureAksAppgwChainPfxBase64Name string = ''
 
-// // passed in from GitHub environment secrets
-// @description('Value of the base64-encoded PFX secret.')
-// param AZURE_AKS_APPGW_CHAIN_PFX_BASE64 string
+// passed in from GitHub environment secrets
+@description('Value of the base64-encoded PFX secret.')
+param AZURE_AKS_APPGW_CHAIN_PFX_BASE64 string
 
-// @description('Value of the base64-encoded root CA certificate.')
-// param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
+@description('Value of the base64-encoded root CA certificate.')
+param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
 
 
 // --------------------------------------------------

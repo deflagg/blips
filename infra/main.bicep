@@ -239,6 +239,14 @@ module aksModule './modules/aks.bicep' = {
   }
 }
 
+module cosmosdbModule './modules/cosmosdb.bicep' = {
+  name: 'cosmosdbDeployment'
+  params: {
+    cosmosAccountName: 'cosmos-${projectName}'
+    location: location
+  }
+}
+
 // APIM sits in front of the App Gateway created by the AKS module.
 // module apimModule './modules/apim.bicep' = {
 //   name: 'apimDeployment'

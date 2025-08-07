@@ -10,7 +10,7 @@ param location string = resourceGroup().location
 var databaseName  = 'blips'
 var containerName = 'UserFollowers'
 
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: cosmosAccountName
   location: location
   kind: 'GlobalDocumentDB'
@@ -39,7 +39,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview
   }
 }
 
-resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
+resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-preview' = {
   name: databaseName
   parent: cosmosAccount
   properties: {
@@ -53,7 +53,7 @@ resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-pr
   ]
 }
 
-resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15-preview' = {
+resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
   name: containerName
   parent: sqlDb
   properties: {

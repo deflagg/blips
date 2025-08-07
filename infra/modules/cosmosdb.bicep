@@ -8,7 +8,7 @@ param cosmosAccountName string
 param location string = resourceGroup().location
 
 var databaseName  = 'blips'
-var containerName = 'UserFollowers'
+var containerName = 'user-followers'
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: cosmosAccountName

@@ -6,7 +6,7 @@ param location string = resourceGroup().location
 
 
 module cosmosdbModule './modules/cosmosdb/main.bicep' = {
-  name: 'logAnalyticsDeployment'
+  name: 'cosmosdbModule'
   params: {
     projectName: projectName
     location: location

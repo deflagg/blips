@@ -239,13 +239,7 @@ param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
 //   }
 // }
 
-module cosmosdbModule './modules/cosmosdb.bicep' = {
-  name: 'cosmosdbDeployment'
-  params: {
-    cosmosAccountName: 'cosmos-${projectName}'
-    location: location
-  }
-}
+
 
 // APIM sits in front of the App Gateway created by the AKS module.
 // module apimModule './modules/apim.bicep' = {
@@ -284,17 +278,22 @@ module cosmosdbModule './modules/cosmosdb.bicep' = {
 //   }
 // }
 
+module logAnalyticsModule './modules/loganalytics.bicep' = {
+  name: 'logAnalyticsDeployment'
+  params: {
+    projectName: projectName
+    location: location
+  }
+}
 
-// --------------------------------------------------
-// Log Analytics Workspace
-// --------------------------------------------------
-// module logAnalyticsModule './modules/loganalytics.bicep' = {
-//   name: 'logAnalyticsDeployment'
-//   params: {
-//     projectName: projectName
-//     location: location
-//   }
-// }
+module cosmosdbModule './modules/cosmosdb.bicep' = {
+  name: 'cosmosdbDeployment'
+  params: {
+    cosmosAccountName: 'cosmos-${projectName}'
+    location: location
+    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
+  }
+}
 
 // --------------------------------------------------
 // Outputs

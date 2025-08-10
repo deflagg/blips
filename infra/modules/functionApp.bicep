@@ -114,7 +114,7 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
 
       // Optional scale/concurrency tuning
       scaleAndConcurrency: {
-        maximumInstanceCount: 10
+        maximumInstanceCount: 100
         instanceMemoryMB: 2048
       }
     }

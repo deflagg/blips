@@ -71,3 +71,11 @@ module cosmosdbModule './modules/cosmosdb/main.bicep' = {
   }
 }
 
+module functionAppModule './modules/functionApp.bicep' = {
+  name: 'functionAppModule'
+  params: {
+    functionAppName: 'blipsFuncApp'
+    location: location
+  }
+}
+

@@ -63,6 +63,14 @@ param AZURE_AKS_APPGW_CHAIN_PFX_BASE64 string
 @description('Value of the base64-encoded root CA certificate.')
 param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
 
+module logAnalyticsModule './modules/loganalytics.bicep' = {
+  name: 'logAnalyticsDeployment'
+  params: {
+    projectName: projectName
+    location: location
+  }
+}
+
 // module cosmosdbModule './modules/cosmosdb/main.bicep' = {
 //   name: 'cosmosdbModule'
 //   params: {
@@ -76,6 +84,9 @@ module functionAppModule './modules/functionApp.bicep' = {
   params: {
     functionAppName: 'blipsFuncApp'
     location: 'centralus' //location
+    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }
+
+
 

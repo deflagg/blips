@@ -18,6 +18,9 @@ param appInsightsName string = 'ai-${functionAppName}'
 
 var planName = '${functionAppName}-fc-plan'
 
+@description('Existing Log Analytics workspace resource ID')
+param logAnalyticsWorkspaceId string
+
 // --------------------
 // Flex Consumption plan
 // --------------------
@@ -28,6 +31,10 @@ resource plan 'Microsoft.Web/serverfarms@2024-11-01' = {
   sku: {
     name: 'FC1'
     tier: 'FlexConsumption'
+  }
+  properties: {
+    reserved: true   // <-- required for Linux
+    // zoneRedundant: false | true (optional, where supported)
   }
 }
 
@@ -68,6 +75,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
   properties: {
     Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspaceId
   }
 }
 

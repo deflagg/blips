@@ -63,19 +63,19 @@ param AZURE_AKS_APPGW_CHAIN_PFX_BASE64 string
 @description('Value of the base64-encoded root CA certificate.')
 param AZURE_AKS_APPGW_ROOT_CERT_BASE64 string
 
-module cosmosdbModule './modules/cosmosdb/main.bicep' = {
-  name: 'cosmosdbModule'
-  params: {
-    projectName: projectName
-    location: location
-  }
-}
+// module cosmosdbModule './modules/cosmosdb/main.bicep' = {
+//   name: 'cosmosdbModule'
+//   params: {
+//     projectName: projectName
+//     location: location
+//   }
+// }
 
 module functionAppModule './modules/functionApp.bicep' = {
   name: 'functionAppModule'
   params: {
     functionAppName: 'blipsFuncApp'
-    location: location
+    location: 'eastus' //location
   }
 }
 

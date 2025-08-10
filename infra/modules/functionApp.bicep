@@ -109,7 +109,7 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
       // Runtime: adjust for your stack (dotnet-isolated 8 shown)
       runtime: {
         name: 'dotnet-isolated'
-        version: '8'
+        version: '9.0'
       }
 
       // Optional scale/concurrency tuning

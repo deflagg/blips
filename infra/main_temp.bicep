@@ -75,7 +75,7 @@ module functionAppModule './modules/functionApp.bicep' = {
   name: 'functionAppModule'
   params: {
     functionAppName: 'blipsFuncApp'
-    location: 'eastus' //location
+    location: 'centralus' //location
   }
 }
 

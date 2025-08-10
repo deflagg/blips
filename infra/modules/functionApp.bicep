@@ -129,7 +129,7 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
 resource appSettings 'Microsoft.Web/sites/config@2022-09-01' = {
   name: 'appsettings'
   parent: app
-  properties: {
+  properties: { 
     // Identity-based connections for Functions host storage:
     'AzureWebJobsStorage__credential': 'managedidentity'
     'AzureWebJobsStorage__blobServiceUri': 'https://${storage.name}.blob.${environment().suffixes.storage}'

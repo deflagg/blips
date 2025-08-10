@@ -71,19 +71,19 @@ module logAnalyticsModule './modules/loganalytics.bicep' = {
   }
 }
 
-// module cosmosdbModule './modules/cosmosdb/main.bicep' = {
-//   name: 'cosmosdbModule'
-//   params: {
-//     projectName: projectName
-//     location: location
-//   }
-// }
+module cosmosdbModule './modules/cosmosdb/main.bicep' = {
+  name: 'cosmosdbModule'
+  params: {
+    projectName: projectName
+    location: location
+  }
+}
 
 module functionAppModule './modules/functionApp.bicep' = {
   name: 'functionAppModule'
   params: {
     functionAppName: 'blipsFuncApp'
-    location: 'centralus' //location
+    location: location
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }

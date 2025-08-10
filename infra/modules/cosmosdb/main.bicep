@@ -19,7 +19,7 @@ module cosmosdbModule 'cosmosdb.bicep' = {
   name: 'cosmosdbDeployment'
   params: {
     cosmosAccountName: 'cosmos-${projectName}'
-    location: location
+    location: 'centralus'
   }
 }
 

@@ -200,7 +200,7 @@ resource roleQueueContributor 'Microsoft.Authorization/roleAssignments@2022-04-0
 
 var cosmosDbName = 'blips'
 var leasesContainerName = 'leases'
-var leasesScope = '/dbs/${cosmosDbName}/colls/${leasesContainerName}'
+//var leasesScope = '/dbs/${cosmosDbName}/colls/${leasesContainerName}'
 
 
 resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = {
@@ -210,8 +210,8 @@ resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments
     principalId: app.identity.principalId
     // Built-in Data Contributor role under THIS account (fully-qualified ID)
     roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
-    // Scope to the leases container via ARM ID (not /dbs/.../colls/...)
-    scope: leasesScope
+    
+    scope: '${cosmos.id}/sqlDatabases/${cosmosDbName}/containers/${leasesContainerName}'
   }
 }
 

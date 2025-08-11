@@ -6,20 +6,15 @@ param projectName string = 'sysdesign'
 @description('Azure region for all resources.')
 param location string = resourceGroup().location
 
-
-module logAnalyticsModule '../loganalytics.bicep' = {
-  name: 'logAnalyticsDeployment'
-  params: {
-    projectName: projectName
-    location: location
-  }
-}
+// get existing log analytics workspace
+@description('Existing Log Analytics workspace resource ID')
+param logAnalyticsWorkspaceId string
 
 module cosmosdbModule 'cosmosdb.bicep' = {
   name: 'cosmosdbDeployment'
   params: {
     cosmosAccountName: 'cosmos-${projectName}'
-    location: 'centralus'
+    location: location
   }
 }
 
@@ -27,7 +22,7 @@ module metricsModule 'metrics.bicep' = {
   name: 'cosmosMetricsDeployment'
   params: {
     cosmosAccountName: cosmosdbModule.outputs.cosmosAccountName
-    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     location: location
   }
 }
@@ -37,7 +32,7 @@ module workbookModule 'workbook.bicep' = {
   params: {
     location: location
     workbookDisplayName: 'Cosmos DB - Deep Dive'
-    workspaceResourceId: logAnalyticsModule.outputs.workspaceId
+    workspaceResourceId: logAnalyticsWorkspaceId
     cosmosAccountId: cosmosdbModule.outputs.cosmosAccountId
   }
 }

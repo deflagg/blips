@@ -211,7 +211,7 @@ resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments
     // Built-in Data Contributor role under THIS account (fully-qualified ID)
     roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
     
-    scope: leasesScope // '${cosmos.id}/sqlDatabases/${cosmosDbName}/containers/${leasesContainerName}'
+    scope: '${cosmos.id}/dbs/${cosmosDbName}/colls/${leasesContainerName}'
   }
 }
 

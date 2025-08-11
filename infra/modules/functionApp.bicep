@@ -209,9 +209,11 @@ resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments
     // Built-in Data Contributor role under THIS account (fully-qualified ID)
     roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
     // Scope to the leases container via ARM ID (not /dbs/.../colls/...)
-    scope: '${cosmos.id}/sqlDatabases/${cosmosDbName}/containers/${leasesContainerName}'
+    scope: '/dbs/${cosmosDbName}/colls/${leasesContainerName}'
   }
 }
+
+
 
 
 // If you use Tables with the Functions host, uncomment the Table role below.

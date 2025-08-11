@@ -76,6 +76,7 @@ module cosmosdbModule './modules/cosmosdb/main.bicep' = {
   params: {
     projectName: projectName
     location: location
+    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }
 

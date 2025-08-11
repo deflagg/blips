@@ -50,7 +50,7 @@ var actions = [
 // ---------- Alert: 429 throttles (request rate pressure) ----------
 resource cosmos429 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'cosmos-429-throttles'
-  location: location
+  location: 'global'
   properties: {
     description: 'Too many 429 (rate-limited) requests'
     severity: 2
@@ -83,7 +83,7 @@ resource cosmos429 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 // ---------- Alert: Server-side latency (Direct mode) ----------
 resource cosmosLatencyDirect 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'cosmos-latency-direct'
-  location: location
+  location: 'global'
   properties: {
     description: 'Server-side latency (Direct) above threshold'
     severity: 2
@@ -113,7 +113,7 @@ resource cosmosLatencyDirect 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 // ---------- Alert: RU saturation (Normalized RU%) ----------
 resource cosmosRUCap 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'cosmos-normalized-ru-high'
-  location: location
+  location: 'global'
   properties: {
     description: 'Normalized RU consumption high (possible hot partition or under-provisioning)'
     severity: 2
@@ -143,7 +143,7 @@ resource cosmosRUCap 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 // ---------- Alert: Provisioned throughput drop or misconfig ----------
 resource cosmosThroughput 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'cosmos-provisioned-throughput-low'
-  location: location
+  location: 'global'
   properties: {
     description: 'Provisioned Throughput unexpectedly low'
     severity: 3

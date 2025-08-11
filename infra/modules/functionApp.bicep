@@ -203,8 +203,8 @@ var leasesContainerName = 'leases'
 var leasesScope = '/dbs/${cosmosDbName}/colls/${leasesContainerName}'
 
 
-resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
-  name: guid(cosmos.id, cosmosDbName, leasesContainerName, 'data-contrib')
+resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = {
+  name: guid(cosmos.id, cosmosDbName, app.name, leasesContainerName, 'data-contrib')
   parent: cosmos
   properties: {
     principalId: app.identity.principalId

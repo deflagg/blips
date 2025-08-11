@@ -12,7 +12,7 @@ var containerName = 'user-followers'
 
 param cosmosLeasesContainerName string = 'leases'
 
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' = {
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
   name: cosmosAccountName
   location: location
   kind: 'GlobalDocumentDB'
@@ -41,7 +41,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview
   }
 }
 
-resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-05-01-preview' = {
+resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-preview' = {
   name: databaseName
   parent: cosmosAccount
   properties: {
@@ -55,7 +55,7 @@ resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-05-01-pr
   ]
 }
 
-resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-05-01-preview' = {
+resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
   name: containerName
   parent: sqlDb
   properties: {
@@ -76,7 +76,7 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
   ]
 }
 
-resource leases 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-05-01-preview' = {
+resource leases 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
   name: cosmosLeasesContainerName
   parent: sqlDb
   properties: {

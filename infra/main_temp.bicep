@@ -71,14 +71,14 @@ module logAnalyticsModule './modules/loganalytics.bicep' = {
   }
 }
 
-module cosmosdbModule './modules/cosmosdb/main.bicep' = {
-  name: 'cosmosdbModule'
-  params: {
-    projectName: projectName
-    location: location
-    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
-  }
-}
+// module cosmosdbModule './modules/cosmosdb/main.bicep' = {
+//   name: 'cosmosdbModule'
+//   params: {
+//     projectName: projectName
+//     location: location
+//     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
+//   }
+// }
 
 module functionAppModule './modules/functionApp.bicep' = {
   name: 'functionAppModule'
@@ -89,7 +89,7 @@ module functionAppModule './modules/functionApp.bicep' = {
     cosmosAccountName: 'cosmos-${projectName}'
   }
   dependsOn: [
-    cosmosdbModule
+    //cosmosdbModule
   ]
 }
 

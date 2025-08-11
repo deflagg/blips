@@ -21,6 +21,9 @@ var planName = '${functionAppName}-fc-plan'
 @description('Existing Log Analytics workspace resource ID')
 param logAnalyticsWorkspaceId string
 
+@description('Existing Cosmos DB account name (NoSQL)')
+param cosmosAccountName string
+
 // --------------------
 // Flex Consumption plan
 // --------------------
@@ -131,6 +134,10 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
   ]
 }
 
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = {
+  name: cosmosAccountName
+}
+
 // --------------------
 // App settings (MI-based AzureWebJobsStorage & App Insights)
 // --------------------
@@ -148,6 +155,8 @@ resource appSettings 'Microsoft.Web/sites/config@2022-09-01' = {
     // Application Insights
     'APPLICATIONINSIGHTS_CONNECTION_STRING': appInsights.properties.ConnectionString
     'APPLICATIONINSIGHTS_AUTHENTICATION_STRING': 'Authorization=AAD'
+    'CosmosConnection__accountEndpoint': cosmos.properties.documentEndpoint
+    'CosmosConnection__credential': 'managedidentity'
   }
 }
 
@@ -177,6 +186,28 @@ resource roleQueueContributor 'Microsoft.Authorization/roleAssignments@2022-04-0
     principalType: 'ServicePrincipal'
   }
 }
+
+// Data-plane role assignment (Contributor) at database scope
+// resource dataContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
+//   name: guid(cosmos.id, 'db', cosmosAccountName, 'data-contrib')
+//   parent: cosmos
+//   properties: {
+//     principalId: app.identity.principalId
+//     roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+//     scope: '/dbs/${cosmosAccountName}'
+//   }
+// }
+
+resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
+  name: guid(cosmos.id, 'db', cosmosAccountName, 'coll', 'leases', 'data-contrib')
+  parent: cosmos
+  properties: {
+    principalId: app.identity.principalId
+    roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    scope: '/dbs/${cosmosAccountName}/colls/leases'
+  }
+}
+
 
 // If you use Tables with the Functions host, uncomment the Table role below.
 // // Storage Table Data Contributor

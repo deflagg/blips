@@ -85,6 +85,7 @@ module functionAppModule './modules/functionApp.bicep' = {
     functionAppName: 'blipsFuncApp'
     location: location
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
+    cosmosAccountName: 'cosmos-${projectName}'
   }
 }
 

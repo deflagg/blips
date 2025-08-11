@@ -10,7 +10,9 @@ param location string = resourceGroup().location
 var databaseName  = 'blips'
 var containerName = 'user-followers'
 
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview' = {
+param cosmosLeasesContainerName string = 'leases'
+
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' = {
   name: cosmosAccountName
   location: location
   kind: 'GlobalDocumentDB'
@@ -39,7 +41,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
   }
 }
 
-resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-preview' = {
+resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-05-01-preview' = {
   name: databaseName
   parent: cosmosAccount
   properties: {
@@ -53,7 +55,7 @@ resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-pr
   ]
 }
 
-resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-05-01-preview' = {
   name: containerName
   parent: sqlDb
   properties: {
@@ -73,6 +75,26 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
     sqlDb
   ]
 }
+
+resource leases 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-05-01-preview' = {
+  name: cosmosLeasesContainerName
+  parent: sqlDb
+  properties: {
+    resource: {
+      id: cosmosLeasesContainerName
+      partitionKey: {
+        paths: ['/id']
+        kind: 'Hash'
+        version: 2
+      }
+    }
+    options: { }
+  }
+  dependsOn: [
+    sqlDb
+  ]
+}
+
 
 output cosmosAccountId string = cosmosAccount.id
 output cosmosAccountName string = cosmosAccount.name

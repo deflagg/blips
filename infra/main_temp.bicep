@@ -87,6 +87,9 @@ module functionAppModule './modules/functionApp.bicep' = {
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
     cosmosAccountName: 'cosmos-${projectName}'
   }
+  dependsOn: [
+    cosmosdbModule
+  ]
 }
 
 

@@ -89,7 +89,7 @@ module functionAppModule './modules/functionApp.bicep' = {
     cosmosAccountName: 'cosmos-${projectName}'
   }
   dependsOn: [
-    //cosmosdbModule
+    cosmosdbModule
   ]
 }
 

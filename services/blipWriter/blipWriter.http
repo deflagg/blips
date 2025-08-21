@@ -1,0 +1,22 @@
+### Create
+POST https://localhost:5001/blips
+Content-Type: application/json
+
+{ "userId": "dennis", "text": "first blip 🎉" }
+
+### List
+GET https://localhost:5001/blips?userId=dennis&pageSize=10
+
+### Get by id
+GET https://localhost:5001/blips/{{id}}?userId=dennis
+
+### Update (note the ETag from the GET response)
+PUT https://localhost:5001/blips/{{id}}?userId=dennis
+If-Match: "{{etag}}"
+Content-Type: application/json
+
+{ "text": "edited blip" }
+
+### Delete
+DELETE https://localhost:5001/blips/{{id}}?userId=dennis
+If-Match: "{{etag}}"

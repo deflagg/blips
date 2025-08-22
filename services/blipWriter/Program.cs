@@ -7,6 +7,8 @@ using BlipWriter.Infrastructure;
 using BlipWriter.Models;
 using Microsoft.Net.Http.Headers;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,8 +83,12 @@ builder.Services.AddCors(options =>
             "ETag",
             "Location",
             "x-ms-activity-id",
-            "x-ms-request-duration"));                   
+            "x-ms-request-duration"));
 });
+
+builder.Services
+        .AddHealthChecks()
+        .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
 
 // ---------- App Services ----------
 builder.Services.AddSingleton<IBlipsRepository, CosmosBlipsRepository>();
@@ -102,7 +108,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = reg => reg.Tags.Contains("live")   // run only the failing check
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = reg => reg.Tags.Contains("ready")  // run only the ready checks
+});
+
 
 // ---------- Blips endpoints ----------
 var group = app.MapGroup("/blips").WithTags("Blips");

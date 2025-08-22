@@ -11,7 +11,7 @@ $chartPath   = "./helm"
 $recordRG    = "global"
 $zoneName    = "priv.dns-sysdesign.com"
 $recordName  = "blipfeed"
-$agwIp       = "20.57.68.47"           # Application Gateway public IP
+$agwIp       = ""           # Application Gateway public IP
 # --------------------------------------------------------------------------
 
 Set-Location -Path "./services/${imageName}"
@@ -104,6 +104,12 @@ if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
 
 
 Write-Host "Helm release ${release} deployed in namespace ${namespace}." -ForegroundColor Green
+
+# get the AGW public IP
+$agwIp = az network public-ip show `
+    --resource-group $aksRG `
+    --name "appgateway-sysdesign-pip" `
+    --query "ipAddress" -o tsv
 
 # --------------------------------------------------------------------------
 # 6. DNS record management (AGW IP) – unchanged

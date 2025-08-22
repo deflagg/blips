@@ -1,4 +1,4 @@
-// Thin coordinator – just passes through the params your AKS+AG template needs.
+
 @description('Project (prefix) used for naming and DNS labels.')
 @minLength(6)
 param projectName string = 'sysdesign'
@@ -19,8 +19,7 @@ param containerRegistryName string = 'acr${projectName}'
 ])
 param containerRegistrySku string = 'Basic'
 
-// You asked for “everything in infrastructure_definition” to live in aks.bicep
-// so we forward only those parameters actually defined there.
+
 param hubVnetName            string = 'hubvnet-${projectName}'
 param spoke1VnetName         string = 'spoke1Vnet-${projectName}'
 param applicationGatewayName string = 'appgateway-${projectName}'

@@ -1,138 +1,168 @@
-    using System.Collections.ObjectModel;
-    using System.Net;
-    using System.Net.Security;
-    using System.Security.Cryptography.X509Certificates;
-    using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-    using Microsoft.AspNetCore.Server.Kestrel.Https;
-    using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System.Globalization; // RU formatting
+using Microsoft.Azure.Cosmos;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.OpenApi.Models;
+using BlipFeed.Contracts;
+using BlipFeed.Infrastructure;
+using BlipFeed.Models;
+using Microsoft.Net.Http.Headers;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
-    var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-    // Add services to the container.
-    // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-    builder.Services.AddOpenApi();
+builder.WebHost.UseKestrel((context, options) =>
+{
+    options.Configure(context.Configuration.GetSection("Kestrel"));
+});
 
-    builder.Services
+// ---------- Swagger ----------
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Blips API", Version = "v1" });
+});
+
+// ---------- Options + CosmosClient (singleton) ----------
+builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection("Cosmos"));
+
+builder.Services.AddSingleton<CosmosClient>(sp =>
+{
+    var opt = sp.GetRequiredService<IOptions<CosmosOptions>>().Value;
+
+    // Allow quick override to force IPv4 if needed (helps on some stacks)
+    var endpoint = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT") ?? opt.Endpoint;
+    var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
+
+    var clientOptions = new CosmosClientOptions
+    {
+        ApplicationName = "Vibe.Blips",
+        ConnectionMode = ConnectionMode.Gateway,   // emulator-friendly (unchanged)
+        LimitToEndpoint = true,                    // (unchanged)
+        SerializerOptions = new CosmosSerializationOptions
+        {
+            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+        }
+    };
+
+    // DEV-ONLY: if hitting the emulator, bypass proxy and trust self-signed cert
+    if (!string.IsNullOrWhiteSpace(endpoint) &&
+        (endpoint.Contains("localhost", StringComparison.OrdinalIgnoreCase) ||
+         endpoint.Contains("127.0.0.1")))
+    {
+        clientOptions.HttpClientFactory = () =>
+        {
+            var handler = new HttpClientHandler
+            {
+                UseProxy = false,
+                Proxy = null,
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+
+            return new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = TimeSpan.FromSeconds(65)
+            };
+        };
+    }
+
+    return new CosmosClient(endpoint, key, clientOptions);
+});
+
+// ---------- CORS ------------
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder => builder.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .WithExposedHeaders(
+            "x-ms-request-charge", // <- RU header you set
+            "ETag",
+            "Location",
+            "x-ms-activity-id",
+            "x-ms-request-duration"));
+});
+
+builder.Services
         .AddHealthChecks()
         .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
 
-    // // Load cert from mounted secret (adjust paths/keys as needed)
-    // var certPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";  // Key Vault secret name
-    // //var certPassword = "/mnt/secrets/cert-password";  // Or env var
-    // var cert = X509Certificate2.CreateFromPemFile(certPath); ///, File.ReadAllText(certPassword));
+// ---------- App Services ----------
+builder.Services.AddSingleton<IBlipsRepository, CosmosBlipsRepository>();
+builder.Services.AddSingleton<ICosmosInitializer, CosmosInitializer>();
 
-    // builder.WebHost.UseKestrel(options =>
-    // {
-    //     options.ListenAnyIP(443, listenOptions =>
-    //     {
-    //         listenOptions.UseHttps(cert);
-    //     });
-    // });
+var app = builder.Build();
 
-    // // Load base64-encoded passwordless PFX from mounted secret
-    // string base64PfxPath = "/mnt/secrets/azure-aks-appgw-pfx-base64";
-    // string base64Pfx = File.ReadAllText(base64PfxPath).Trim();
-    // byte[] pfxBytes = Convert.FromBase64String(base64Pfx);
+app.Logger.LogInformation("ENV={Env}", app.Environment.EnvironmentName);
 
-    // // Load the PFX using the .NET 9 API (returns a single cert)
-    // X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(
-    //     pfxBytes,
-    //     password: null,
-    //     keyStorageFlags: X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable
-    // );
+app.UseCors("AllowAll");
 
-    string certPath = "/mnt/secrets/azure-aks-appgw-chain-pfx";
-    // Load the full PFX chain
-    // Load leaf cert with private key (efficient for .NET 6+)
-    // Load full chain collection (no password; use null or empty string)
-    X509Certificate2Collection fullChain = X509CertificateLoader.LoadPkcs12CollectionFromFile(certPath, null, X509KeyStorageFlags.Exportable);
-
-    // Find leaf cert with private key
-    X509Certificate2? leafCert = fullChain.FirstOrDefault(c => c.HasPrivateKey);
-    if (leafCert == null) throw new Exception("No certificate with private key found in PFX.");
-
-    // Create additional chain (exclude leaf)
-    var additionalChain = new X509Certificate2Collection(fullChain.Where(c => !c.Thumbprint.Equals(leafCert.Thumbprint)).ToArray());
-
-    // Build reusable context (sends full chain)
-    var serverCertContext = SslStreamCertificateContext.Create(leafCert, additionalChain, offline: true);
-
-    builder.WebHost.UseKestrel(options =>
-    {
-        options.Listen(IPAddress.Any, 443, listenOptions =>
-        {
-            listenOptions.UseHttps(new TlsHandshakeCallbackOptions
-            {
-                OnConnection = _ => new ValueTask<SslServerAuthenticationOptions>(
-                    new SslServerAuthenticationOptions
-                    {
-                        ServerCertificateContext = serverCertContext
-                    })
-            });
-        });
-    });
-
-    // cors
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("AllowAll",
-            builder => builder.AllowAnyOrigin()
-                              .AllowAnyMethod()
-                              .AllowAnyHeader());
-    });
-
-
-
-    var app = builder.Build();
-
-    app.UseCors("AllowAll");
-
-    // Configure the HTTP request pipeline.
+// Create DB/container automatically in Development
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.UseHttpsRedirection();
+    await app.Services.GetRequiredService<ICosmosInitializer>().InitializeAsync();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-    if (app.Environment.IsProduction())
-    {
-        app.UseHttpsRedirection();
-    }
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = reg => reg.Tags.Contains("live")   // run only the failing check
+});
 
-    // ----------  Health-check endpoints ----------
-    app.MapHealthChecks("/health/live", new HealthCheckOptions
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = reg => reg.Tags.Contains("ready")  // run only the ready checks
+});
+
+
+// ---------- Blips endpoints ----------
+var group = app.MapGroup("/blips").WithTags("Blips");
+
+// GET /blips/{id}?userId=...
+// group.MapGet("/{id}", async Task<Results<Ok<BlipDto>, NotFound>> (
+//     string id,
+//     string userId,
+//     IBlipsRepository repo,
+//     HttpResponse res,
+//     CancellationToken ct) =>
+// {
+//     var found = await repo.GetAsync(id, userId, ct);
+//     if (found is null) return TypedResults.NotFound();
+
+//     var (item, etag) = found.Value;
+//     res.Headers.ETag = $"\"{etag}\"";
+//     return TypedResults.Ok(item.ToDto());
+// })
+// .WithName("GetBlip");
+
+
+// GET /blips?userId=...&pageSize=20&continuationToken=...
+group.MapGet("/", async (
+    string userId,
+    int pageSize,
+    string? continuationToken,
+    IBlipsRepository repo,
+    CancellationToken ct) =>
+{
+    pageSize = pageSize <= 0 ? 20 : Math.Min(pageSize, 100);
+
+    // RU: capture RU from repository
+    var (items, token, ru) = await repo.ListAsync(userId, pageSize, continuationToken, ct);
+
+    // RU: include ru in payload
+    return Results.Ok(new
     {
-        Predicate = reg => reg.Tags.Contains("live")   // run only the failing check
+        items = items.Select(i => i.ToDto()),
+        continuationToken = token,
+        ru
     });
+})
+.Produces(StatusCodes.Status200OK)
+.WithName("ListBlips");
 
-    app.MapHealthChecks("/health/ready", new HealthCheckOptions
-    {
-        Predicate = reg => reg.Tags.Contains("ready")  // run only the ready checks
-    });
-    // ---------------------------------------------
-
-    var summaries = new[]
-    {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
-    app.MapGet("/weatherforecast", () =>
-    {
-        var forecast =  Enumerable.Range(1, 5).Select(index =>
-            new WeatherForecast
-            (
-                DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                Random.Shared.Next(-20, 55),
-                summaries[Random.Shared.Next(summaries.Length)]
-            ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
-
-    app.Run();
-
-    record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-    {
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
+// run
+app.Run();

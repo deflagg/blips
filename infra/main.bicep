@@ -238,11 +238,12 @@ module aksModule './modules/aks.bicep' = {
   }
 }
 
-module cosmosdbModule './modules/cosmosdb.bicep' = {
+module cosmosdbModule './modules/cosmosdb/main.bicep' = {
   name: 'cosmosdbDeployment'
   params: {
-    cosmosAccountName: 'cosmos-${projectName}'
+    projectName: 'cosmos-${projectName}'
     location: location
+    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }
 

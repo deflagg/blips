@@ -1,0 +1,62 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Deploy Blip Writer
+
+# Controls when the workflow will run
+on:
+  # run workflow on push to main branch
+  workflow_dispatch:
+  
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/blipwriter/**'
+      - '.github/workflows/deploy_blipwriter.yml'
+
+# 🔑 Allow OIDC token issuance
+permissions:
+  id-token: write      # needed for azure/login OIDC flow
+  contents: read       # minimum for actions/checkout
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "deploy"
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Development
+    env:
+      AZ_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Install Azure CLI
+    - name: Upgrade Azure CLI (if needed)
+      run: |
+        az version --query '"azure-cli"'   # optional, shows current version
+        az upgrade --yes                   # brings CLI + extensions to latest GA
+    
+    - name: Helm tool installer
+      uses: Azure/setup-helm@v3.5
+      with:
+        version: latest
+
+    # (Optional) Sign-in so Az cmdlets inside deploy.ps1 can touch Azure
+    - name: Azure login
+      uses: azure/login@v2
+      with:
+        client-id:        ${{ secrets.AZURE_GITHUB_ACTIONS_CLIENT_ID }}
+        tenant-id:        ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id:  ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        enable-AzPSSession: true
+
+    # Run the script
+    - name: Run deploy.ps1
+      uses: azure/powershell@v2
+      with:
+        azPSVersion: "latest"
+        inlineScript: |
+          ./services/blipwriter/deploy.ps1
+        errorActionPreference: Stop
+        failOnStandardError: true      

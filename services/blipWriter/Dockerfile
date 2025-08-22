@@ -22,4 +22,4 @@ COPY --from=build /app .
 EXPOSE 443
 
 # Set the entry point for the container
-ENTRYPOINT ["dotnet", "blippost.dll"]
+ENTRYPOINT ["dotnet", "blipwriter.dll"]

@@ -26,11 +26,15 @@ blips/
 │   └── certs/                 # TLS certificates and CA management
 │       ├── akscerts/          # AKS cluster certificates
 │       └── vpncert/           # VPN client certificates
-├── services/                   # Backend services
-│   ├── blipfeed/              # .NET 9 Web API service
+├── services/                   # Backend microservices
+│   ├── blipfeed/              # .NET 9 Read API (Query side)
 │   │   ├── Program.cs         # Main application entry point
 │   │   ├── Dockerfile         # Container definition
 │   │   ├── helm/              # Kubernetes Helm charts
+│   │   └── deploy.ps1         # Service deployment script
+│   ├── blipWriter/            # .NET 9 Write API (Command side)
+│   │   ├── Program.cs         # Main application entry point
+│   │   ├── Dockerfile         # Container definition
 │   │   └── deploy.ps1         # Service deployment script
 │   └── userFollowersCdc/      # Azure Functions for Cosmos DB CDC
 │       ├── user-followers-trigger.cs  # Cosmos DB change feed processor
@@ -68,15 +72,33 @@ The project uses Azure Bicep templates to provision a complete enterprise-grade 
 
 ### Backend Services
 
-#### BlipFeed Service (.NET 9 Web API)
-A modern .NET 9 REST API service featuring:
+#### CQRS Architecture with Separated Read/Write Services
+
+The platform implements **Command Query Responsibility Segregation (CQRS)** pattern with dedicated services for read and write operations:
+
+#### BlipFeed Service (.NET 9 Read API)
+A specialized .NET 9 REST API service for **query operations** featuring:
+- **GET /blips** - List blips with pagination and continuation tokens
+- **Request Unit (RU) monitoring** - Cosmos DB cost tracking in response headers
 - Health check endpoints for Kubernetes probes
-- Weather forecast sample API
 - TLS certificate integration with Azure Key Vault
 - OpenAPI/Swagger documentation
 - Docker containerization with multi-stage builds
 - Kubernetes deployment via Helm charts
 - Integration with Application Gateway for HTTPS termination
+- CORS support with exposed RU headers for client-side monitoring
+
+#### BlipWriter Service (.NET 9 Write API)
+A dedicated .NET 9 REST API service for **command operations** featuring:
+- **POST /blips** - Create new blips with validation (1-280 characters)
+- **PUT /blips/{id}** - Update existing blips with optimistic concurrency control
+- **Request Unit (RU) monitoring** - Real-time Cosmos DB cost tracking
+- **ETag-based concurrency** - Prevents lost updates with If-Match headers
+- Health check endpoints for Kubernetes probes
+- OpenAPI/Swagger documentation with validation schemas
+- Docker containerization for cloud deployment
+- Automatic Cosmos DB initialization in development mode
+- CORS configuration for cross-origin requests
 
 #### UserFollowers CDC Function (Azure Functions v4)
 A serverless Azure Function that:
@@ -91,7 +113,8 @@ A serverless Azure Function that:
 A modern React 19 application built with:
 - **Vite**: Fast development server and optimized production builds
 - **Component Architecture**: Modular React components
-- **BlipFeed Integration**: Connects to the backend API service
+- **Dual API Integration**: Connects to both BlipFeed (read) and BlipWriter (write) services
+- **Request Unit Awareness**: Displays Cosmos DB cost information from API responses
 - **Modern JavaScript**: ES modules and modern syntax
 - **Development Tools**: ESLint for code quality
 - **Containerization**: Multi-stage Docker builds for production deployment
@@ -127,11 +150,19 @@ cd infra
 
 ### Service Deployment
 
-#### Deploy BlipFeed API Service
+#### Deploy BlipFeed Read API Service
 
 ```powershell
-# Deploy the .NET API service to AKS
+# Deploy the .NET Read API service to AKS
 cd services/blipfeed
+./deploy.ps1
+```
+
+#### Deploy BlipWriter Command API Service
+
+```powershell
+# Deploy the .NET Write API service to AKS
+cd services/blipWriter
 ./deploy.ps1
 ```
 
@@ -158,10 +189,10 @@ cd ui
 
 ## Local Development
 
-### BlipFeed API Service
+### BlipFeed Read API Service
 
 ```powershell
-# Navigate to the API service directory
+# Navigate to the Read API service directory
 cd services/blipfeed
 
 # Restore dependencies
@@ -172,6 +203,25 @@ dotnet run
 
 # The API will be available at https://localhost:5001
 # Swagger UI available at https://localhost:5001/swagger
+# GET /blips?userId=test&pageSize=20 - List blips with RU tracking
+```
+
+### BlipWriter Command API Service
+
+```powershell
+# Navigate to the Write API service directory
+cd services/blipWriter
+
+# Restore dependencies
+dotnet restore
+
+# Run the service locally (uses HTTPS with development certificates)
+dotnet run
+
+# The API will be available at https://localhost:5002 (or next available port)
+# Swagger UI available at https://localhost:5002/swagger
+# POST /blips - Create blips with validation and RU monitoring
+# PUT /blips/{id}?userId={userId} - Update with ETag concurrency control
 ```
 
 ### Azure Functions (UserFollowers CDC)
@@ -212,8 +262,9 @@ dotnet build
 # Run tests (if available)
 dotnet test
 
-# Build production-ready containers
+# Build production-ready containers for both services
 docker build -t blipfeed:latest -f services/blipfeed/Dockerfile services/blipfeed
+docker build -t blipwriter:latest -f services/blipWriter/Dockerfile services/blipWriter
 docker build -t blips-ui:latest -f ui/Dockerfile ui
 ```
 
@@ -232,6 +283,9 @@ docker build -t blips-ui:latest -f ui/Dockerfile ui
 
 ## Architecture Highlights
 
+- **CQRS Pattern**: Command Query Responsibility Segregation with dedicated read/write services
+- **Request Unit Monitoring**: Real-time Cosmos DB cost tracking with RU headers
+- **Optimistic Concurrency**: ETag-based conflict resolution for data consistency
 - **Hub and Spoke Topology**: Centralized connectivity and security
 - **Private Cluster Design**: Enhanced security with private endpoints
 - **API Gateway Pattern**: Centralized API management with Azure APIM
@@ -247,10 +301,43 @@ docker build -t blips-ui:latest -f ui/Dockerfile ui
 
 The platform uses **Azure Cosmos DB** in serverless mode with:
 - **Database**: `blips` 
-- **Main Container**: `user-followers` - stores user relationship data
+- **Main Container**: `user-followers` - stores user relationship data and blip content
 - **Leases Container**: `leases` - manages change feed processing state
 - **Free Tier**: Cost-effective for development and small-scale production
 - **Change Feed**: Real-time event processing for user relationship updates
+- **Request Unit Tracking**: Built-in cost monitoring with RU consumption in API responses
+- **Partition Strategy**: Optimized for user-based queries with userId as partition key
+- **Consistency Model**: Strong consistency for write operations, eventual consistency for reads
+
+## API Design
+
+The platform implements a **CQRS (Command Query Responsibility Segregation)** pattern with separate services for read and write operations:
+
+### BlipFeed API (Read Operations)
+- **GET /blips?userId={userId}&pageSize={size}&continuationToken={token}**
+  - List blips with pagination support
+  - Returns continuation tokens for efficient paging
+  - Includes RU consumption in response headers
+  - Supports configurable page sizes (max 100)
+
+### BlipWriter API (Write Operations)
+- **POST /blips**
+  - Create new blips with validation (1-280 characters)
+  - Returns 201 Created with ETag header for concurrency control
+  - Includes RU consumption tracking
+  - Validates userId and text content
+
+- **PUT /blips/{id}?userId={userId}**
+  - Update existing blips with optimistic concurrency
+  - Requires If-Match header with ETag for conflict prevention
+  - Returns 412 Precondition Failed on ETag mismatch
+  - Real-time RU consumption monitoring
+
+### Cross-Cutting Concerns
+- **Health Checks**: `/health/live` and `/health/ready` endpoints for Kubernetes
+- **CORS**: Configured for cross-origin requests with exposed RU headers
+- **OpenAPI**: Full Swagger documentation for both services
+- **Request Unit Tracking**: All operations return Cosmos DB cost information
 
 ## Getting Started
 

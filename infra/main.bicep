@@ -239,7 +239,7 @@ module aksModule './modules/aks.bicep' = {
 }
 
 module cosmosdbModule './modules/cosmosdb/main.bicep' = {
-  name: 'cosmosdbDeployment'
+  name: 'cosmosdbModule'
   params: {
     projectName: 'cosmos-${projectName}'
     location: location

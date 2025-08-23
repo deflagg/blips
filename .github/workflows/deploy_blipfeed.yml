@@ -57,6 +57,7 @@ jobs:
       with:
         azPSVersion: "latest"
         inlineScript: |
+          $env:ASPNETCORE_ENVIRONMENT = "${{ env.APP_ENVIRONMENT }}"
           ./services/blipfeed/deploy.ps1
         errorActionPreference: Stop
         failOnStandardError: true      

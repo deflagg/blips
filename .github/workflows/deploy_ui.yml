@@ -37,11 +37,6 @@ jobs:
         az version --query '"azure-cli"'   # optional, shows current version
         az upgrade --yes                   # brings CLI + extensions to latest GA
     
-    - name: Upgrade Azure CLI (if needed)
-      run: |
-        az version --query '"azure-cli"'   # optional, shows current version
-        az upgrade --yes                   # brings CLI + extensions to latest GA
-    
     - name: Helm tool installer
       uses: Azure/setup-helm@v3.5
       with:

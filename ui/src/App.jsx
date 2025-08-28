@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useState } from 'react'
-import BlipFeed from './components/blipFeed'
-import BlipPost from './components/blipPost'
+import BlipFeed from './components/blipFeed.jsx'
+import BlipPost from './components/blipPost.jsx'
 
 function App() {
   const [feedVersion, setFeedVersion] = useState(0);

@@ -37,11 +37,26 @@ if ($LASTEXITCODE) { throw "Stack deployment failed." }
 
 Write-Host "`n➤ Running install-dns-forwarder.sh on $vmName ..."
 $scriptPath = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
-az vm run-command invoke `
+
+# if vm exists
+$vmExists = az vm show `
+    --resource-group $ResourceGroupName `
+    --name 'dnsforwarder' `
+    --query "name" -o tsv
+
+if ($vmExists) {
+    Write-Host "`n➤ Found DNS forwarder VM"
+    Write-Host "`n➤ Running install-dns-forwarder.sh on dnsforwarder VM to configure DNS forwarding..."
+
+    az vm run-command invoke `
     --resource-group  $ResourceGroupName `
     --name            'dnsforwarder' `
     --command-id      RunShellScript `
     --scripts         "@$scriptPath" `
     --output          table
+} else {
+    Write-Host "`n➤ DNS forwarder VM does not exist."
+}
+
 
 if ($LASTEXITCODE) { throw "DNS forwarder installation failed." }

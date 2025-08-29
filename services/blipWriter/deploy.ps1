@@ -1,20 +1,21 @@
 # --- User‑defined variables -----------------------------------------------
 $acrName     = "acrsysdesign"
-$imageName   = "blipWriter"
+$imageName   = "blipwriter"
 $imageTag    = "latest"
 $aksName     = "aks-sysdesign"         # 👈 keep in sync with your bicep
 $aksRG       = "sysdesign"             # 👈 resource group for the AKS cluster
-$release     = "blipWriter"
-$namespace   = "blipWriter"
+$release     = "blipwriter"
+$namespace   = "blipwriter"
 $chartPath   = "./helm"
 # DNS
 $recordRG    = "global"
 $zoneName    = "priv.dns-sysdesign.com"
-$recordName  = "blipWriter"
+$recordName  = "blipwriter"
 $agwIp       = ""           # Application Gateway public IP
 # --------------------------------------------------------------------------
 
-Set-Location -Path "./services/${imageName}"
+$folderName  = "blipWriter"
+Set-Location -Path "./services/${folderName}"
 
 # az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
 

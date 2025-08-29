@@ -11,7 +11,7 @@ on:
     branches:
       - main
     paths:
-      - 'services/blipwriter/**'
+      - 'services/blipWriter/**'
       - '.github/workflows/deploy_blipwriter.yml'
 
 # 🔑 Allow OIDC token issuance
@@ -57,6 +57,7 @@ jobs:
       with:
         azPSVersion: "latest"
         inlineScript: |
+          $env:ASPNETCORE_ENVIRONMENT = "${{ vars.APP_ENVIRONMENT }}"
           ./services/blipWriter/deploy.ps1
         errorActionPreference: Stop
         failOnStandardError: true      

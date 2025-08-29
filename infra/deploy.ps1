@@ -39,10 +39,7 @@ Write-Host "`n➤ Running install-dns-forwarder.sh on $vmName ..."
 $scriptPath = Join-Path $PSScriptRoot 'install-dns-forwarder.sh'
 
 # if vm exists
-$vmExists = az vm show `
-    --resource-group $ResourceGroupName `
-    --name 'dnsforwarder' `
-    --query "name" -o tsv
+$vmExists = az vm show --resource-group $ResourceGroupName --name 'dnsforwarder' --query "name" -o tsv
 
 if ($vmExists) {
     Write-Host "`n➤ Found DNS forwarder VM"
@@ -57,6 +54,3 @@ if ($vmExists) {
 } else {
     Write-Host "`n➤ DNS forwarder VM does not exist."
 }
-
-
-if ($LASTEXITCODE) { throw "DNS forwarder installation failed." }

@@ -96,6 +96,11 @@ Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundCo
 # Wait for propagation
 Start-Sleep -Seconds 5
 
+# Log environment variables
+Write-Host "Environment variables:"
+Write-Host "ASPNETCORE_ENVIRONMENT: $env:ASPNETCORE_ENVIRONMENT"
+
+
 helm upgrade --install $release $chartPath `
     --namespace $namespace --create-namespace --atomic `
     --set "$saAnnotationKeyEsc=$uamiClientId" `
@@ -104,7 +109,7 @@ helm upgrade --install $release $chartPath `
     --set-string "env[0].value=$env:ASPNETCORE_ENVIRONMENT" `
     --set "env[1].name=ASPNETCORE_FORWARDEDHEADERS_ENABLED" `
     --set-string "env[1].value=true"
-    
+
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
 
 

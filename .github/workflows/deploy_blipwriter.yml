@@ -57,6 +57,6 @@ jobs:
       with:
         azPSVersion: "latest"
         inlineScript: |
-          ./services/blipwriter/deploy.ps1
+          ./services/blipWriter/deploy.ps1
         errorActionPreference: Stop
         failOnStandardError: true      

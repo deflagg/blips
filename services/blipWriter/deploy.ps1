@@ -1,16 +1,16 @@
 # --- User‑defined variables -----------------------------------------------
 $acrName     = "acrsysdesign"
-$imageName   = "blipwriter"
+$imageName   = "blipWriter"
 $imageTag    = "latest"
 $aksName     = "aks-sysdesign"         # 👈 keep in sync with your bicep
 $aksRG       = "sysdesign"             # 👈 resource group for the AKS cluster
-$release     = "blipwriter"
-$namespace   = "blipwriter"
+$release     = "blipWriter"
+$namespace   = "blipWriter"
 $chartPath   = "./helm"
 # DNS
 $recordRG    = "global"
 $zoneName    = "priv.dns-sysdesign.com"
-$recordName  = "blipwriter"
+$recordName  = "blipWriter"
 $agwIp       = ""           # Application Gateway public IP
 # --------------------------------------------------------------------------
 

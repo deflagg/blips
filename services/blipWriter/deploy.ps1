@@ -97,11 +97,14 @@ Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundCo
 Start-Sleep -Seconds 5
 
 helm upgrade --install $release $chartPath `
-  --namespace $namespace --create-namespace --atomic `
-  --set "$saAnnotationKeyEsc=$uamiClientId" `
-  --set "azureWorkloadIdentity.clientId=$uamiClientId" `
-  --set "env[0].value=$env:ASPNETCORE_ENVIRONMENT"  # This is used to ensure the correct appsettings file is used
-  
+    --namespace $namespace --create-namespace --atomic `
+    --set "$saAnnotationKeyEsc=$uamiClientId" `
+    --set "azureWorkloadIdentity.clientId=$uamiClientId" `
+    --set "env[0].name=ASPNETCORE_ENVIRONMENT" `
+    --set-string "env[0].value=$env:ASPNETCORE_ENVIRONMENT" `
+    --set "env[1].name=ASPNETCORE_FORWARDEDHEADERS_ENABLED" `
+    --set-string "env[1].value=true"
+    
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
 
 

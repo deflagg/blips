@@ -137,14 +137,13 @@ resource aksKvCertificatesUser 'Microsoft.Authorization/roleAssignments@2022-04-
 }
 
 var cosmosDbName = 'blips'
-var containerName = 'user-followers'
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = {
   name: cosmosAccountName
 }
 
-resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
-  name: guid(cosmos.id, cosmosDbName, containerName, 'data-contrib')
+resource blipsDBContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
+  name: guid(cosmos.id, cosmosDbName, 'data-contrib')
   parent: cosmos
   properties: {
     principalId: aksClusterIdentity.properties.principalId

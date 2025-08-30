@@ -235,7 +235,11 @@ module aksModule './modules/aks.bicep' = {
     aksClusterName         : aksClusterName
     dnsPrefix              : dnsPrefix
     keyVaultName           : keyVaultModule.outputs.keyVaultName
+    cosmosAccountName      : 'cosmos-${projectName}'
   }
+  dependsOn: [
+    cosmosdbModule
+  ]
 }
 
 module cosmosdbModule './modules/cosmosdb/main.bicep' = {

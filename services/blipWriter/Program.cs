@@ -34,7 +34,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 
     // Allow quick override to force IPv4 if needed (helps on some stacks)
     var endpoint = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT") ?? opt.Endpoint;
-    var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
+    //var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
 
     var clientOptions = new CosmosClientOptions
     {

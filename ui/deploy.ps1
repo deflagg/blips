@@ -9,7 +9,7 @@ Write-Host "`n➤ Building and pushing Docker image to Azure Container Registry 
 
 
 # Build the Docker image
-docker build -f ./Dockerfile -t acrsysdesign.azurecr.io/blips-ui:latest --progress=plain ./ui
+docker build -f ./ui/Dockerfile -t acrsysdesign.azurecr.io/blips-ui:latest --progress=plain ./ui
 
 
 # List the images to verify the build

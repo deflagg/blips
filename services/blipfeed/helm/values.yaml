@@ -18,12 +18,18 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: "blips-blipfeed"
 
+# Environment variables
+env: {}
+
 serviceAccount:
   create: true
   name: blipfeed-sa
   annotations:
     azure.workload.identity/client-id: ""
     #azure.workload.identity/inject: "true"
+
+podLabels:
+  azure.workload.identity/use: "true" 
 
 podSecurityContext: {}
   # fsGroup: 2000

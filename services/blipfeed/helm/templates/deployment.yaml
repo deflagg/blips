@@ -60,6 +60,20 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          env:
+          {{- range $k, $v := .Values.env }}
+          - name: {{ $k }}
+            value: {{ $v | quote }}
+          {{- end }}
+          {{- range .Values.extraEnv }}
+          - name: {{ .name }}
+            {{- if .valueFrom }}
+            valueFrom:
+            {{ toYaml .valueFrom | indent 6 }}
+            {{- else }}
+            value: {{ .value | quote }}
+            {{- end }}
+          {{- end }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

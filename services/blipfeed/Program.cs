@@ -9,6 +9,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Azure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +34,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 
     // Allow quick override to force IPv4 if needed (helps on some stacks)
     var endpoint = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT") ?? opt.Endpoint;
-    var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
+    //var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
 
     var clientOptions = new CosmosClientOptions
     {
@@ -68,7 +69,8 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         };
     }
 
-    return new CosmosClient(endpoint, key, clientOptions);
+    //return new CosmosClient(endpoint, key, clientOptions);
+    return new CosmosClient(endpoint, new DefaultAzureCredential(), clientOptions);
 });
 
 // ---------- CORS ------------

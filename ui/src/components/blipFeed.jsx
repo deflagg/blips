@@ -17,7 +17,7 @@ function BlipFeed() {
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        const response = await fetch('https://blipfeed.blips.service?userId=1&pageSize=10')
+        const response = await fetch('https://blipfeed.blips.service/blips?userId=1&pageSize=10')
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         const data = await response.json()
         setFeed(Array.isArray(data.items) ? data.items : [])

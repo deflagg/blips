@@ -89,7 +89,7 @@ az identity federated-credential create `
     --resource-group $aksRG `
     --issuer $issuerUrl `
     --subject system:serviceaccount:blipwriter:blipwriter-sa `
-    --audience api://AzureADTokenExchange
+    --audiences api://AzureADTokenExchange
 if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
 Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
 

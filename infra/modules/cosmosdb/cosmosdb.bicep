@@ -7,8 +7,8 @@ param cosmosAccountName string
 @description('Azure region for the account and its replicas.')
 param location string = resourceGroup().location
 
-var databaseName  = 'blips'
-var containerName = 'user-followers'
+var databaseName  = 'blipsdb'
+var containerName = 'blips'
 
 param cosmosLeasesContainerName string = 'leases'
 
@@ -48,7 +48,7 @@ resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-pr
     resource: {
       id: databaseName
     }
-    options: {}                         // default options
+    options: {}
   }
   dependsOn: [
     cosmosAccount
@@ -63,13 +63,12 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
       id: containerName
       partitionKey: {
         paths: [
-          '/UserId'                     // **partition key**
+          '/userId'
         ]
         kind: 'Hash'
       }
-      // Default throughput = PAYG (serverless) – no RU/s setting needed
     }
-    options: {}                         // keep empty for serverless
+    options: {}
   }
   dependsOn: [
     sqlDb

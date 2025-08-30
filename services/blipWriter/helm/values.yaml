@@ -28,6 +28,9 @@ serviceAccount:
     azure.workload.identity/client-id: ""
     #azure.workload.identity/inject: "true"
 
+podLabels:
+  azure.workload.identity/use: "true" 
+
 podSecurityContext: {}
   # fsGroup: 2000
 

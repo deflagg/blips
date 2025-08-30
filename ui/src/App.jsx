@@ -41,7 +41,7 @@ function App() {
           <section className="col col--feed">
             <div className="card">
               <div className="card-header">
-                <h2 className="card-title">Recent Blips New</h2>
+                <h2 className="card-title">Recent Blips New 2</h2>
                 <p className="card-subtitle">Latest posts, newest first.</p>
               </div>
               <div className="card-body">

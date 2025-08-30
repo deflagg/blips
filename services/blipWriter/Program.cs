@@ -9,6 +9,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Azure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,7 +69,8 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
         };
     }
 
-    return new CosmosClient(endpoint, key, clientOptions);
+    //return new CosmosClient(endpoint, key, clientOptions);
+    return new CosmosClient(endpoint, new DefaultAzureCredential(), clientOptions);
 });
 
 // ---------- CORS ------------

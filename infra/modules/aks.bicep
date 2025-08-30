@@ -30,6 +30,9 @@ param aksClusterName string = 'aks-${projectName}'
 @description('Specifies the DNS prefix for the AKS cluster.')
 param dnsPrefix string = 'aksdns-${projectName}'
 
+@description('Existing Cosmos DB account name (NoSQL)')
+param cosmosAccountName string
+
 resource aksClusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
   name: 'aks-sysdesign-identity'
   location: location
@@ -130,6 +133,25 @@ resource aksKvCertificatesUser 'Microsoft.Authorization/roleAssignments@2022-04-
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
     principalId: aksClusterIdentity.properties.principalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+var cosmosDbName = 'blips'
+var containerName = 'user-followers'
+
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = {
+  name: cosmosAccountName
+}
+
+resource leasesContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
+  name: guid(cosmos.id, cosmosDbName, containerName, 'data-contrib')
+  parent: cosmos
+  properties: {
+    principalId: aksClusterIdentity.properties.principalId
+    // Built-in Data Contributor role under THIS account (fully-qualified ID)
+    roleDefinitionId: '${cosmos.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    
+    scope: '${cosmos.id}/dbs/${cosmosDbName}'
   }
 }
 

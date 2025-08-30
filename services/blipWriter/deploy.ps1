@@ -93,6 +93,17 @@ az identity federated-credential create `
 if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
 Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
 
+# --- grant Cosmos SQL data-plane role to the UAMI (container scope) ---
+# $scope = "/dbs/blips/colls/user-followers"
+# $roleDefId = "00000000-0000-0000-0000-000000000002"  # Built-in Data Contributor
+# $uamiName = "aks-sysdesign-identity"
+# $uamiObjectId = az identity show -g $aksRG -n $uamiName --query "principalId" -o tsv
+# az cosmosdb sql role assignment create `
+#   -g $rg -a 'cosmos-cosmos-sysdesign' `
+#   --principal-id $uamiObjectId `
+#   --role-definition-id $roleDefId `
+#   --scope $scope
+
 # Wait for propagation
 Start-Sleep -Seconds 5
 

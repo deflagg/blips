@@ -136,7 +136,7 @@ resource aksKvCertificatesUser 'Microsoft.Authorization/roleAssignments@2022-04-
   }
 }
 
-var cosmosDbName = 'blips'
+var cosmosDbName = 'blipsdb'
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = {
   name: cosmosAccountName

@@ -25,7 +25,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Blips API", Version = "v1" });
 });
 
-// ---------- Options + CosmosClient (singleton) ---------
+// ---------- Options + CosmosClient (singleton) --------
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection("Cosmos"));
 
 builder.Services.AddSingleton<CosmosClient>(sp =>

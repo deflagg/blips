@@ -106,7 +106,7 @@ helm upgrade --install $release $chartPath `
     --set "$saAnnotationKeyEsc=$uamiClientId" `
     --set "azureWorkloadIdentity.clientId=$uamiClientId" `
     --set-string "env.ASPNETCORE_ENVIRONMENT=$($env:ASPNETCORE_ENVIRONMENT)" `
-    --set-string "env.DOTNET_ENVIRONMENT=$($env:DOTNET_ENVIRONMENT)" `
+    --set-string "env.DOTNET_ENVIRONMENT=$($env:ASPNETCORE_ENVIRONMENT)" `
     --set-string "env.ASPNETCORE_FORWARDEDHEADERS_ENABLED=true"
 
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }

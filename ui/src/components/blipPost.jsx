@@ -3,7 +3,7 @@ import { useState } from 'react'
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://localhost:5051',
+  baseURL: 'https://blipwriter.blips.service',
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 })
 

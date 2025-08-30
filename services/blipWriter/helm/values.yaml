@@ -18,6 +18,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: "blips-blipwriter"
 
+# Environment variables
+env: {}
+
 serviceAccount:
   create: true
   name: blipwriter-sa

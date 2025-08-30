@@ -245,7 +245,7 @@ module aksModule './modules/aks.bicep' = {
 module cosmosdbModule './modules/cosmosdb/main.bicep' = {
   name: 'cosmosdbModule'
   params: {
-    projectName: 'cosmos-${projectName}'
+    projectName: projectName
     location: location
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }

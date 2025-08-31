@@ -127,7 +127,7 @@ builder.Services.AddSingleton<ICosmosInitializer, CosmosInitializer>();
 builder.Services.AddSingleton<IPersonRepository>(sp =>
     new PersonRepository(
         sp.GetRequiredService<GremlinClient>(),
-        maintainReverseEdge: true // keep fast followers
+        maintainReverseEdge: true
     )
 );
 

@@ -44,7 +44,6 @@ public sealed class PersonRepository : IPersonRepository
         _maintainReverseEdge = maintainReverseEdge;
     }
 
-
     public async Task<(Person, double)> UpsertPersonAsync(Person p, CancellationToken ct = default)
     {
         var q = """
@@ -65,17 +64,17 @@ public sealed class PersonRepository : IPersonRepository
           .project('id','displayName','email','createdAt','updatedAt')
           .by(values('id'))
           .by(values('displayName'))
-          .by(coalesce(values('email'), constant(null)))
+          .by(coalesce(values('email'), constant('')))
           .by(values('createdAt'))
           .by(values('updatedAt'))
         """;
 
         var u = new Dictionary<string, object> {
-            ["uid"] = p.Id,
-            ["name"] = p.DisplayName,
-            ["email"] = (object?)p.Email ?? DBNull.Value,
-            ["created"] = p.CreatedAt,
-            ["updated"] = p.UpdatedAt
+            ["uid"]     = p.Id,
+            ["name"]    = p.DisplayName,
+            ["email"]   = p.Email ?? "",                 // primitives only
+            ["created"] = Iso(p.CreatedAt),              // ISO strings
+            ["updated"] = Iso(p.UpdatedAt)
         };
 
         var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, u);
@@ -90,7 +89,7 @@ public sealed class PersonRepository : IPersonRepository
           .project('id','displayName','email','createdAt','updatedAt')
           .by(values('id'))
           .by(values('displayName'))
-          .by(coalesce(values('email'), constant(null)))
+          .by(coalesce(values('email'), constant('')))
           .by(values('createdAt'))
           .by(values('updatedAt'))
         """;
@@ -132,7 +131,7 @@ public sealed class PersonRepository : IPersonRepository
         """ : "");
 
         var rs = await _client.SubmitAsync<dynamic>(q, new() {
-            ["f"] = followerId, ["t"] = followeeId, ["createdAt"] = now
+            ["f"] = followerId, ["t"] = followeeId, ["createdAt"] = Iso(now)   // ISO string
         });
         return (true, ReadRu(rs));
     }
@@ -176,7 +175,7 @@ public sealed class PersonRepository : IPersonRepository
           .project('id','displayName','email','createdAt','updatedAt')
           .by(values('id'))
           .by(values('displayName'))
-          .by(coalesce(values('email'), constant(null)))
+          .by(coalesce(values('email'), constant('')))
           .by(values('createdAt'))
           .by(values('updatedAt'))
         """;
@@ -196,7 +195,7 @@ public sealed class PersonRepository : IPersonRepository
           .project('id','displayName','email','createdAt','updatedAt')
           .by(values('id'))
           .by(values('displayName'))
-          .by(coalesce(values('email'), constant(null)))
+          .by(coalesce(values('email'), constant('')))
           .by(values('createdAt'))
           .by(values('updatedAt'))
         """ : """
@@ -206,7 +205,7 @@ public sealed class PersonRepository : IPersonRepository
           .project('id','displayName','email','createdAt','updatedAt')
           .by(values('id'))
           .by(values('displayName'))
-          .by(coalesce(values('email'), constant(null)))
+          .by(coalesce(values('email'), constant('')))
           .by(values('createdAt'))
           .by(values('updatedAt'))
         """;
@@ -256,7 +255,7 @@ public sealed class PersonRepository : IPersonRepository
                 .project('id','displayName','email','createdAt','updatedAt')
                 .by(values('id'))
                 .by(values('displayName'))
-                .by(coalesce(values('email'), constant(null)))
+                .by(coalesce(values('email'), constant('')))
                 .by(values('createdAt'))
                 .by(values('updatedAt')))
             .by(select(values))
@@ -283,7 +282,7 @@ public sealed class PersonRepository : IPersonRepository
          .project('id','displayName','email','createdAt','updatedAt')
          .by(values('id'))
          .by(values('displayName'))
-         .by(coalesce(values('email'), constant(null)))
+         .by(coalesce(values('email'), constant('')))
          .by(values('createdAt'))
          .by(values('updatedAt'))
         """;
@@ -307,10 +306,12 @@ public sealed class PersonRepository : IPersonRepository
 
     // ----- helpers -----
 
+    private static string Iso(DateTimeOffset dto) => dto.UtcDateTime.ToString("o");
+
     private static Person MapPerson(Dictionary<string, object> d) => new(
         Id: (string)d["id"],
         DisplayName: (string)d["displayName"],
-        Email: d.TryGetValue("email", out var e) ? e as string : null,
+        Email: d.TryGetValue("email", out var e) && e is string s && s.Length > 0 ? s : null, // "" -> null
         CreatedAt: ToDto(d["createdAt"]),
         UpdatedAt: ToDto(d["updatedAt"])
     );

@@ -1,7 +1,9 @@
 using Gremlin.Net.Driver;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using UserAdmin.Models;
 
 namespace UserAdmin.Infrastructure;
@@ -69,7 +71,8 @@ public sealed class PersonRepository : IPersonRepository
     public async Task<(Person, double)> UpsertPersonAsync(Person p, CancellationToken ct = default)
     {
         var uid = p.Id ?? throw new ArgumentNullException(nameof(p.Id));
-
+         var pk  = _pkForId(uid);
+         
         // NOTE: property key names (like the PK) cannot be parameterized as bindings; we inline the string.
         var q = $@"
 g.V([pid, uid]).fold().
@@ -382,6 +385,35 @@ g.V([upk,u]).out('follows')
             _ => DateTimeOffset.UtcNow
         };
 
-    private static double ReadRu<TResult>(ResultSet<TResult> rs) =>
-        rs.StatusAttributes.TryGetValue("x-ms-total-request-charge", out var v) ? Convert.ToDouble(v) : 0d;
+    private static double ReadRu<TResult>(ResultSet<TResult> rs)
+    {
+        const string RuKey = "x-ms-total-request-charge";
+
+        if (rs?.StatusAttributes == null) return 0d;
+        if (!rs.StatusAttributes.TryGetValue(RuKey, out var v) || v is null) return 0d;
+
+        switch (v)
+        {
+            case double d:   return d;
+            case float f:    return f;
+            case decimal m:  return (double)m;
+            case long l:     return l;
+            case int i:      return i;
+            case string s when double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed):
+                return parsed;
+            case JsonElement je:
+                if (je.ValueKind == JsonValueKind.Number && je.TryGetDouble(out var num))
+                    return num;
+                if (je.ValueKind == JsonValueKind.String &&
+                    double.TryParse(je.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var strNum))
+                    return strNum;
+                break;
+        }
+
+        // Last-ditch attempt
+        return double.TryParse(v.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var fallback)
+            ? fallback
+            : 0d;
+    }
+
 }

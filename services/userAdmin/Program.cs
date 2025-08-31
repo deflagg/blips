@@ -77,7 +77,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 });
 
 // ---------- Options  GremlinClient (singleton) ----------
-builder.Services.Configure<GremlinOptions>(builder.Configuration.GetSection("UserGraphDB"));
+builder.Services.Configure<GremlinOptions>(builder.Configuration.GetSection("PersonGraphDB"));
 
 builder.Services.AddSingleton<GremlinClient>(sp =>
 {

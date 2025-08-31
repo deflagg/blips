@@ -71,27 +71,11 @@ module logAnalyticsModule './modules/loganalytics.bicep' = {
   }
 }
 
-module cosmosdbModule './modules/cosmosdb/main.bicep' = {
-  name: 'cosmosdbModule'
+module gremlindbModule './modules/gremlindb/main.bicep' = {
+  name: 'gremlindbModule'
   params: {
     projectName: projectName
     location: location
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }
-
-module functionAppModule './modules/functionApp.bicep' = {
-  name: 'functionAppModule'
-  params: {
-    functionAppName: 'blipsFuncApp'
-    location: location
-    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
-    cosmosAccountName: 'cosmos-${projectName}'
-  }
-  dependsOn: [
-    cosmosdbModule
-  ]
-}
-
-
-

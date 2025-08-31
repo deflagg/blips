@@ -33,6 +33,10 @@ param dnsPrefix string = 'aksdns-${projectName}'
 @description('Existing Cosmos DB account name (NoSQL)')
 param cosmosAccountName string
 
+@description('Specifies the name of the Gremlin account.')
+param gremlinAccountName string
+
+
 resource aksClusterIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
   name: 'aks-sysdesign-identity'
   location: location
@@ -142,6 +146,11 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' exist
   name: cosmosAccountName
 }
 
+var personDbName = 'PersonGraphDb'
+resource gremlin 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = {
+  name: gremlinAccountName
+}
+
 resource blipsDBContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
   name: guid(cosmos.id, cosmosDbName, 'data-contrib')
   parent: cosmos
@@ -154,17 +163,38 @@ resource blipsDBContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignment
   }
 }
 
+// Create custom role at the RG scope with the minimal actions to fetch RW keys
+resource listKeysRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+  name: guid(resourceGroup().id, 'Cosmos-ListKeys-Minimal')
+  scope: resourceGroup()
+  properties: {
+    roleName: 'Cosmos DB List Keys (Minimal)'
+    description: 'Can read Cosmos DB account metadata and list RW keys'
+    assignableScopes: [ resourceGroup().id ] // custom roles: MG/subscription/RG only
+    permissions: [
+      {
+        actions: [
+          'Microsoft.DocumentDB/databaseAccounts/read'
+          'Microsoft.DocumentDB/databaseAccounts/listKeys/action'
+          // optionally add: 'Microsoft.DocumentDB/databaseAccounts/listConnectionStrings/action'
+        ]
+        notActions: []
+      }
+    ]
+  }
+}
 
+resource listKeysAssign 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(gremlin.id, personDbName, 'cosmos-list-keys')
+  scope: gremlin
+  properties: {
+    roleDefinitionId: listKeysRole.id
+    principalId: aksClusterIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    description: 'Allow AKS MI to list **read-write** Cosmos DB keys'
+  }
+}
 
-// resource csiKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(keyVault.id, 'kv-secrets-user')
-//   scope: keyVault
-//   properties: {
-//     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
-//     principalId: aksCluster.properties.addonProfiles.azureKeyvaultSecretsProvider.identity.objectId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
 
 // Assigns the Reader role to the Resource Group
 resource resourceGroupReaderRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

@@ -236,9 +236,11 @@ module aksModule './modules/aks.bicep' = {
     dnsPrefix              : dnsPrefix
     keyVaultName           : keyVaultModule.outputs.keyVaultName
     cosmosAccountName      : 'cosmos-${projectName}'
+    gremlinAccountName     : 'gremlin-${projectName}'
   }
   dependsOn: [
     cosmosdbModule
+    gremlindbModule
   ]
 }
 

@@ -7,7 +7,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: acrsysdesign.azurecr.io/blipwriter
+  repository: acrsysdesign.azurecr.io/useradmin
   tag: latest
   # This sets the pull policy for images.
   pullPolicy: Always
@@ -119,7 +119,7 @@ azureWorkloadIdentity:
 keyvault:
   name: kv-primary-sysdesign
   # secretObjects:  # Sync Key Vault cert to Kubernetes Secret for Ingress
-  #   - secretName: blipwriter-tls-secret
+  #   - secretName: useradmin-tls-secret
   #     type: kubernetes.io/tls
   #     data:
   #       - objectName: azure-aks-appgw-pfx-base64

@@ -56,7 +56,7 @@ public sealed class PersonRepository : IPersonRepository
     /// </param>
     public PersonRepository(
         GremlinClient client,
-        string partitionKeyPropertyName = "personId",
+        string partitionKeyPropertyName = "PersonId",
         Func<string, string>? pkForId = null,
         bool maintainReverseEdge = true)
     {

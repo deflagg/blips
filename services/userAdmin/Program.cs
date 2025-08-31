@@ -127,7 +127,8 @@ builder.Services.AddSingleton<ICosmosInitializer, CosmosInitializer>();
 builder.Services.AddSingleton<IPersonRepository>(sp =>
     new PersonRepository(
         sp.GetRequiredService<GremlinClient>(),
-        maintainReverseEdge: true
+        maintainReverseEdge: true,
+        partitionKeyPropertyName: "PersonId"   // matches Person model property name
     )
 );
 

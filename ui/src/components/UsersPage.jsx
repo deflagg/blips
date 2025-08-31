@@ -1,5 +1,54 @@
 // src/components/UsersPage.jsx
 import { useEffect, useState } from 'react'
+import axios from 'axios'
+
+// --- Axios client (mirrors blipPost style) ---
+const http = axios.create({
+  baseURL: 'https://useradmin.blips.service', // your hostname
+  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+})
+
+// Read RU header like in blipPost
+const parseRu = (res) => {
+  const h = res?.headers?.['x-ms-request-charge']
+  const ru = h ? parseFloat(Array.isArray(h) ? h[0] : h) : 0
+  return Number.isFinite(ru) ? ru : 0
+}
+
+// Uniform error message extraction (works with problem/json, strings, etc.)
+const getErr = (err) =>
+  err?.response?.data?.error ||
+  err?.response?.data?.message ||
+  (typeof err?.response?.data === 'string' ? err.response.data : '') ||
+  err.message ||
+  'Request failed'
+
+// Minimal API wrapper for Persons
+const api = {
+  // NOTE: This assumes a GET /persons endpoint that returns an array of persons.
+  // If you don't have it yet, see the note after the component.
+  list: async (skip = 0, take = 100) => {
+    const res = await http.get('/persons', { params: { skip, take } })
+    return { items: Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.items) ? res.data.items : []), ru: parseRu(res) }
+  },
+
+  // POST /persons/ expects: { id, displayName, email }
+  create: async ({ name, email }) => {
+    const id =
+      (globalThis.crypto?.randomUUID?.() ??
+        `${Date.now()}-${Math.random().toString(16).slice(2)}`)
+
+    const payload = { id, displayName: name, email }
+    const res = await http.post('/persons/', payload)
+    return { data: res.data, ru: parseRu(res) }
+  },
+
+  // DELETE /persons/{id}
+  remove: async (id) => {
+    const res = await http.delete(`/persons/${encodeURIComponent(id)}`)
+    return { ru: parseRu(res) }
+  },
+}
 
 export default function UsersPage() {
   const [users, setUsers]   = useState([])
@@ -7,22 +56,16 @@ export default function UsersPage() {
   const [error, setError]   = useState(null)
   const [busy, setBusy]     = useState(false)
   const [form, setForm]     = useState({ name: '', email: '' })
-
-  // Replace these endpoints with your real user service
-  const api = {
-    list:   async () => { const r = await fetch('/api/users'); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() },
-    create: async (u) => { const r = await fetch('/api/users', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(u)}); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() },
-    remove: async (id) => { const r = await fetch(`/api/users/${id}`, { method:'DELETE' }); if (!r.ok) throw new Error(`HTTP ${r.status}`) },
-  }
+  const [lastRu, setLastRu] = useState(null)
 
   const refresh = async () => {
     setLoading(true); setError(null)
     try {
-      const data = await api.list()
-      // accept either {items:[...]} or [...]
-      setUsers(Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []))
+      const { items, ru } = await api.list()
+      setUsers(items)
+      setLastRu(ru)
     } catch (e) {
-      setError(e.message || 'Failed to load users')
+      setError(getErr(e))
     } finally {
       setLoading(false)
     }
@@ -35,11 +78,12 @@ export default function UsersPage() {
     if (!form.name.trim() || !form.email.trim()) return
     try {
       setBusy(true); setError(null)
-      await api.create(form)
+      const { ru } = await api.create(form)
       setForm({ name: '', email: '' })
+      setLastRu(ru)
       await refresh()
     } catch (e) {
-      setError(e.message || 'Create failed')
+      setError(getErr(e))
     } finally {
       setBusy(false)
     }
@@ -48,9 +92,12 @@ export default function UsersPage() {
   const onDelete = async (id) => {
     if (!confirm('Delete this user?')) return
     try {
-      setBusy(true)
-      await api.remove(id)
+      setBusy(true); setError(null)
+      const { ru } = await api.remove(id)
+      setLastRu(ru)
       await refresh()
+    } catch (e) {
+      setError(getErr(e))
     } finally {
       setBusy(false)
     }
@@ -80,6 +127,12 @@ export default function UsersPage() {
                 {busy ? 'Saving…' : 'Create user'}
               </button>
             </form>
+
+            {/* RU badge (last operation) */}
+            <div className="metrics right" style={{ marginTop: 8 }}>
+              <span className="chip">Last RU: {lastRu != null ? lastRu.toFixed(3) : '—'}</span>
+            </div>
+
             {error && <div role="alert" className="alert alert-error" style={{ marginTop: 12 }}>Error: {error}</div>}
           </div>
         </div>
@@ -100,10 +153,10 @@ export default function UsersPage() {
               <ul className="feed-list">
                 {users.map(u => (
                   <li key={u.id} className="feed-item">
-                    <div className="avatar" aria-hidden="true">{(u.name || '?').slice(0,2).toUpperCase()}</div>
+                    <div className="avatar" aria-hidden="true">{(u.displayName || u.name || '?').slice(0,2).toUpperCase()}</div>
                     <div className="feed-content">
                       <div className="feed-meta">
-                        <span className="feed-user">{u.name || '(no name)'}</span>
+                        <span className="feed-user">{u.displayName || u.name || '(no name)'}</span>
                         <span className="dot">•</span>
                         <span className="muted">{u.email}</span>
                         <span className="chip">#{u.id}</span>

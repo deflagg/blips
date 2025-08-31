@@ -13,6 +13,7 @@ using Azure.Identity;
 using Gremlin.Net.Driver;
 using Azure.ResourceManager.CosmosDB;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseKestrel((context, options) =>
@@ -123,8 +124,8 @@ builder.Services
 // ---------- App Services ----------
 builder.Services.AddSingleton<IBlipsRepository, CosmosBlipsRepository>();
 builder.Services.AddSingleton<ICosmosInitializer, CosmosInitializer>();
-builder.Services.AddSingleton<IUsersGraphRepository>(sp =>
-    new UsersRepository(
+builder.Services.AddSingleton<IPersonRepository>(sp =>
+    new PersonRepository(
         sp.GetRequiredService<GremlinClient>(),
         maintainReverseEdge: true // keep fast followers
     )
@@ -156,61 +157,55 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 
 
 // ---------- Users endpoints ----------
-var users = group.MapGroup("/users").WithTags("Users");
+var persons = app.MapGroup("/persons").WithTags("Persons");
 
 // tiny helper to surface RU like your Core API endpoints do
 static void SetRu(HttpResponse res, double ru) =>
     res.Headers["x-ms-request-charge"] = ru.ToString("0.###", CultureInfo.InvariantCulture);
 
-// DTOs
-public sealed record UserCreateDto(string Id, string DisplayName, string? Email);
-public sealed record UserUpdateDto(string DisplayName, string? Email);
-public sealed record FollowStateDto(bool Following);
-public sealed record CountDto(long Count);
-public sealed record SuggestionDto(User User, long Mutuals);
-
 // Create (or upsert) a user
-users.MapPost("/", async (IUsersGraphRepository repo, HttpContext http, UserCreateDto dto) =>
+persons.MapPost("/", async (IPersonRepository repo, HttpContext http, PersonCreateDto dto) =>
 {
     var now = DateTimeOffset.UtcNow;
-    var user = new User(dto.Id, dto.DisplayName, dto.Email, now, now);
+    var user = new Person(dto.Id, dto.DisplayName, dto.Email, now, now);
 
-    var (created, ru) = await repo.UpsertUserAsync(user, http.RequestAborted);
+    (Person created, double ru) = await repo.UpsertPersonAsync(user, http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Created($"/useradmin/users/{created.Id}", created);
 });
 
-// Update a user (idempotent upsert)
-users.MapPut("/{id}", async (IUsersGraphRepository repo, HttpContext http, string id, UserUpdateDto dto) =>
+// Update a person (idempotent upsert)
+persons.MapPut("/{id}", async (IPersonRepository repo, HttpContext http, string id, PersonUpdateDto dto) =>
 {
     var now = DateTimeOffset.UtcNow;
-    var (existing, ru0) = await repo.GetUserAsync(id, http.RequestAborted);
+
+    (Person? existing, double ru0) = await repo.GetPersonAsync(id, http.RequestAborted);
 
     var user = existing is null
-        ? new User(id, dto.DisplayName, dto.Email, now, now)
-        : new User(id,
+        ? new Person(id, dto.DisplayName, dto.Email, now, now)
+        : new Person(id,
                    dto.DisplayName ?? existing.DisplayName,
                    dto.Email,
                    existing.CreatedAt,
                    now);
 
-    var (updated, ru1) = await repo.UpsertUserAsync(user, http.RequestAborted);
+    (Person updated, double ru1) = await repo.UpsertPersonAsync(user, http.RequestAborted);
     SetRu(http.Response, ru0 + ru1);
     return Results.Ok(updated);
 });
 
-// Get user by id
-users.MapGet("/{id}", async (IUsersGraphRepository repo, HttpContext http, string id) =>
+// Get person by id
+persons.MapGet("/{id}", async (IPersonRepository repo, HttpContext http, string id) =>
 {
-    var (user, ru) = await repo.GetUserAsync(id, http.RequestAborted);
+    (Person? user, double ru) = await repo.GetPersonAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
     return user is null ? Results.NotFound() : Results.Ok(user);
 });
 
-// Delete user
-users.MapDelete("/{id}", async (IUsersGraphRepository repo, HttpContext http, string id) =>
+// Delete person
+persons.MapDelete("/{id}", async (IPersonRepository repo, HttpContext http, string id) =>
 {
-    var (deleted, ru) = await repo.DeleteUserAsync(id, http.RequestAborted);
+    (bool deleted, double ru) = await repo.DeletePersonAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
     return deleted ? Results.NoContent() : Results.NotFound();
 });
@@ -218,28 +213,28 @@ users.MapDelete("/{id}", async (IUsersGraphRepository repo, HttpContext http, st
 // ----- Follow mechanics -----
 
 // Follow
-users.MapPost("/{id}/follow/{targetId}", async (IUsersGraphRepository repo, HttpContext http, string id, string targetId) =>
+persons.MapPost("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
 {
     if (string.Equals(id, targetId, StringComparison.Ordinal))
-        return Results.BadRequest(new { error = "User cannot follow themself." });
+        return Results.BadRequest(new { error = "Person cannot follow themself." });
 
-    var (ok, ru) = await repo.FollowAsync(id, targetId, http.RequestAborted);
+    (bool ok, double ru) = await repo.FollowAsync(id, targetId, http.RequestAborted);
     SetRu(http.Response, ru);
     return ok ? Results.NoContent() : Results.Problem("Follow failed.");
 });
 
 // Unfollow
-users.MapDelete("/{id}/follow/{targetId}", async (IUsersGraphRepository repo, HttpContext http, string id, string targetId) =>
+persons.MapDelete("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
 {
-    var (ok, ru) = await repo.UnfollowAsync(id, targetId, http.RequestAborted);
+    (bool ok, double ru) = await repo.UnfollowAsync(id, targetId, http.RequestAborted);
     SetRu(http.Response, ru);
     return ok ? Results.NoContent() : Results.NotFound();
 });
 
 // Is following?
-users.MapGet("/{id}/following/{targetId}", async (IUsersGraphRepository repo, HttpContext http, string id, string targetId) =>
+persons.MapGet("/{id}/following/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
 {
-    var (following, ru) = await repo.IsFollowingAsync(id, targetId, http.RequestAborted);
+    (bool following, double ru) = await repo.IsFollowingAsync(id, targetId, http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(new FollowStateDto(following));
 });
@@ -247,41 +242,44 @@ users.MapGet("/{id}/following/{targetId}", async (IUsersGraphRepository repo, Ht
 // ----- Lists & counts -----
 
 // Following list
-users.MapGet("/{id}/following", async (IUsersGraphRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
+persons.MapGet("/{id}/following", async (IPersonRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
 {
-    var (list, ru) = await repo.GetFollowingAsync(id, Math.Max(0, skip), Math.Clamp(take, 1, 200), http.RequestAborted);
+    (IReadOnlyList<Person> list, double ru) =
+        await repo.GetFollowingAsync(id, Math.Max(0, skip), Math.Clamp(take, 1, 200), http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(list);
 });
 
 // Followers list
-users.MapGet("/{id}/followers", async (IUsersGraphRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
+persons.MapGet("/{id}/followers", async (IPersonRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
 {
-    var (list, ru) = await repo.GetFollowersAsync(id, Math.Max(0, skip), Math.Clamp(take, 1, 200), http.RequestAborted);
+    (IReadOnlyList<Person> list, double ru) =
+        await repo.GetFollowersAsync(id, Math.Max(0, skip), Math.Clamp(take, 1, 200), http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(list);
 });
 
 // Following count
-users.MapGet("/{id}/following/count", async (IUsersGraphRepository repo, HttpContext http, string id) =>
+persons.MapGet("/{id}/following/count", async (IPersonRepository repo, HttpContext http, string id) =>
 {
-    var (count, ru) = await repo.CountFollowingAsync(id, http.RequestAborted);
+    (long count, double ru) = await repo.CountFollowingAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(new CountDto(count));
 });
 
 // Followers count
-users.MapGet("/{id}/followers/count", async (IUsersGraphRepository repo, HttpContext http, string id) =>
+persons.MapGet("/{id}/followers/count", async (IPersonRepository repo, HttpContext http, string id) =>
 {
-    var (count, ru) = await repo.CountFollowersAsync(id, http.RequestAborted);
+    (long count, double ru) = await repo.CountFollowersAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(new CountDto(count));
 });
 
 // Suggestions (people you may know)
-users.MapGet("/{id}/suggestions", async (IUsersGraphRepository repo, HttpContext http, string id, int limit = 20) =>
+persons.MapGet("/{id}/suggestions", async (IPersonRepository repo, HttpContext http, string id, int limit = 20) =>
 {
-    var (suggestions, ru) = await repo.SuggestToFollowAsync(id, Math.Clamp(limit, 1, 100), http.RequestAborted);
+    (IReadOnlyList<(Person user, long mutuals)> suggestions, double ru) =
+        await repo.SuggestToFollowAsync(id, Math.Clamp(limit, 1, 100), http.RequestAborted);
     SetRu(http.Response, ru);
 
     // map to DTO if you want a stable contract
@@ -290,17 +288,19 @@ users.MapGet("/{id}/suggestions", async (IUsersGraphRepository repo, HttpContext
 });
 
 // Mutual followees between two users (who both A and B follow)
-users.MapGet("/{id}/mutuals/{otherId}", async (IUsersGraphRepository repo, HttpContext http, string id, string otherId, int limit = 50) =>
+persons.MapGet("/{id}/mutuals/{otherId}", async (IPersonRepository repo, HttpContext http, string id, string otherId, int limit = 50) =>
 {
-    var (list, ru) = await repo.MutualFollowsAsync(id, otherId, Math.Clamp(limit, 1, 200), http.RequestAborted);
+    (IReadOnlyList<Person> list, double ru) =
+        await repo.MutualFollowsAsync(id, otherId, Math.Clamp(limit, 1, 200), http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(list);
 });
 
 // Utility: followee ids (to join with your Blips repo for timelines)
-users.MapGet("/{id}/followee-ids", async (IUsersGraphRepository repo, HttpContext http, string id, int max = 500) =>
+persons.MapGet("/{id}/followee-ids", async (IPersonRepository repo, HttpContext http, string id, int max = 500) =>
 {
-    var (ids, ru) = await repo.GetFolloweeIdsAsync(id, Math.Clamp(max, 1, 2000), http.RequestAborted);
+    (IReadOnlyList<string> ids, double ru) =
+        await repo.GetFolloweeIdsAsync(id, Math.Clamp(max, 1, 2000), http.RequestAborted);
     SetRu(http.Response, ru);
     return Results.Ok(ids);
 });

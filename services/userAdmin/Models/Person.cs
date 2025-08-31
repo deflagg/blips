@@ -1,6 +1,6 @@
 namespace UserAdmin.Models;
 
-public sealed record User(
+public sealed record Person(
     string Id,
     string DisplayName,
     string? Email,
@@ -8,5 +8,5 @@ public sealed record User(
     DateTimeOffset UpdatedAt
 );
 
-public readonly record struct Suggestion(User User, long Mutuals);
+public readonly record struct Suggestion(Person Person, long Mutuals);
 public readonly record struct WithRu<T>(T Value, double Ru);

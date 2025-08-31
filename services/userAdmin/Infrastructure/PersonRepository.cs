@@ -69,7 +69,6 @@ public sealed class PersonRepository : IPersonRepository
     public async Task<(Person, double)> UpsertPersonAsync(Person p, CancellationToken ct = default)
     {
         var uid = p.Id ?? throw new ArgumentNullException(nameof(p.Id));
-        var pk  = _pkForId(uid);
 
         // NOTE: property key names (like the PK) cannot be parameterized as bindings; we inline the string.
         var q = $@"
@@ -96,7 +95,7 @@ g.V([pid, uid]).fold().
 ";
 
         var u = new Dictionary<string, object> {
-            ["pid"]     = pk,                 // PK value
+            ["pid"]     = uid,                 // PK value
             ["uid"]     = uid,                // vertex id
             ["name"]    = p.DisplayName,
             ["email"]   = p.Email ?? "",      // primitives only

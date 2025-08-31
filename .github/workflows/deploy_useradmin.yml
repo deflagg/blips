@@ -58,6 +58,6 @@ jobs:
         azPSVersion: "latest"
         inlineScript: |
           $env:ASPNETCORE_ENVIRONMENT = "${{ vars.APP_ENVIRONMENT }}"
-          ./services/blipWriter/deploy.ps1
+          ./services/userAdmin/deploy.ps1
         errorActionPreference: Stop
         failOnStandardError: true      

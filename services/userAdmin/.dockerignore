@@ -1,0 +1,4 @@
+# Prevent cross‑platform artefacts breaking Docker builds
+**/bin/
+**/obj/
+**/out/

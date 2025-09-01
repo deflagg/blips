@@ -41,61 +41,61 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
   }
 }
 
-resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-preview' = {
-  name: databaseName
-  parent: cosmosAccount
-  properties: {
-    resource: {
-      id: databaseName
-    }
-    options: {}
-  }
-  dependsOn: [
-    cosmosAccount
-  ]
-}
+// resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-02-15-preview' = {
+//   name: databaseName
+//   parent: cosmosAccount
+//   properties: {
+//     resource: {
+//       id: databaseName
+//     }
+//     options: {}
+//   }
+//   dependsOn: [
+//     cosmosAccount
+//   ]
+// }
 
-resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
-  name: containerName
-  parent: sqlDb
-  properties: {
-    resource: {
-      id: containerName
-      partitionKey: {
-        paths: [
-          '/userId'
-        ]
-        kind: 'Hash'
-      }
-    }
-    options: {}
-  }
-  dependsOn: [
-    sqlDb
-  ]
-}
+// resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+//   name: containerName
+//   parent: sqlDb
+//   properties: {
+//     resource: {
+//       id: containerName
+//       partitionKey: {
+//         paths: [
+//           '/userId'
+//         ]
+//         kind: 'Hash'
+//       }
+//     }
+//     options: {}
+//   }
+//   dependsOn: [
+//     sqlDb
+//   ]
+// }
 
-resource leases 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
-  name: cosmosLeasesContainerName
-  parent: sqlDb
-  properties: {
-    resource: {
-      id: cosmosLeasesContainerName
-      partitionKey: {
-        paths: ['/id']
-        kind: 'Hash'
-        version: 2
-      }
-    }
-    options: { }
-  }
-  dependsOn: [
-    sqlDb
-  ]
-}
+// resource leases 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-02-15-preview' = {
+//   name: cosmosLeasesContainerName
+//   parent: sqlDb
+//   properties: {
+//     resource: {
+//       id: cosmosLeasesContainerName
+//       partitionKey: {
+//         paths: ['/id']
+//         kind: 'Hash'
+//         version: 2
+//       }
+//     }
+//     options: { }
+//   }
+//   dependsOn: [
+//     sqlDb
+//   ]
+// }
 
 
 output cosmosAccountId string = cosmosAccount.id
 output cosmosAccountName string = cosmosAccount.name
-output sqlDatabaseId string = sqlDb.id
-output containerId string = container.id
+// output sqlDatabaseId string = sqlDb.id
+// output containerId string = container.id

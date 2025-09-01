@@ -46,39 +46,39 @@ resource gremlinAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-previe
   }
 }
 
-resource gremlinDb 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2025-05-01-preview' = {
-  name: gremlinDatabaseName
-  parent: gremlinAccount
-  properties: {
-    resource: {
-      id: gremlinDatabaseName
-    }
-    // In serverless, do NOT set throughput
-    options: {}
-  }
-}
+// resource gremlinDb 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2025-05-01-preview' = {
+//   name: gremlinDatabaseName
+//   parent: gremlinAccount
+//   properties: {
+//     resource: {
+//       id: gremlinDatabaseName
+//     }
+//     // In serverless, do NOT set throughput
+//     options: {}
+//   }
+// }
 
-resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2025-05-01-preview' = {
-  name: gremlinGraphName
-  parent: gremlinDb
-  properties: {
-    resource: {
-      id: gremlinGraphName
-      partitionKey: {
-        paths: [
-          graphPartitionKeyPath
-        ]
-        kind: 'Hash'
-        version: 2
-      }
-    }
-    // No throughput in serverless
-    options: {}
-  }
-}
+// resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2025-05-01-preview' = {
+//   name: gremlinGraphName
+//   parent: gremlinDb
+//   properties: {
+//     resource: {
+//       id: gremlinGraphName
+//       partitionKey: {
+//         paths: [
+//           graphPartitionKeyPath
+//         ]
+//         kind: 'Hash'
+//         version: 2
+//       }
+//     }
+//     // No throughput in serverless
+//     options: {}
+//   }
+// }
 
 // ---------- Outputs ----------
 output gremlinAccountId string = gremlinAccount.id
 output gremlinAccountName string = gremlinAccount.name
-output gremlinDatabaseId string = gremlinDb.id
-output gremlinGraphId string = gremlinGraph.id
+// output gremlinDatabaseId string = gremlinDb.id
+// output gremlinGraphId string = gremlinGraph.id

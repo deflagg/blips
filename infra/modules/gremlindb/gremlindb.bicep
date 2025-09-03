@@ -62,9 +62,9 @@ resource gremlinDbGraphManager 'Microsoft.Authorization/roleDefinitions@2022-04-
       {
         actions: [
           // Gremlin databases (control-plane)
-          'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/write'
+          //'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/write'
           'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/read'
-          'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/delete'
+          //'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/delete'
           'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/operationResults/read'
           'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/throughputSettings/*'
 

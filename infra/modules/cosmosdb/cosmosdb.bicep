@@ -56,15 +56,11 @@ resource cosmosDbDbContainerManager 'Microsoft.Authorization/roleDefinitions@202
     permissions: [
       {
         actions: [
-          // Gremlin role assignments (control-plane)
-          'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments/write'
-          'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments/read'
-          'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments/read'
-          
+       
           // SQL databases (control-plane)
-          'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/write'
+          //'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/write'
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/read'
-          'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/delete'
+          //'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/delete'
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/operationResults/read'
           'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/throughputSettings/*'
 

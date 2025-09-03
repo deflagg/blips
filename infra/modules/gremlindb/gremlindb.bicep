@@ -61,11 +61,6 @@ resource gremlinDbGraphManager 'Microsoft.Authorization/roleDefinitions@2022-04-
     permissions: [
       {
         actions: [
-          // Gremlin role assignments (control-plane)
-          'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments/write'
-          'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments/read'
-          'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions/read'
-
           // Gremlin databases (control-plane)
           'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/write'
           'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/read'

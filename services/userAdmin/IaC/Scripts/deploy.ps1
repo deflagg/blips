@@ -34,7 +34,7 @@ Write-Host "ACR login successful." -ForegroundColor Green
 # 2. Build & push image
 # --------------------------------------------------------------------------
 Write-Host "Building image ${imageName}:${imageTag} ..."
-docker build -t "${imageName}:${imageTag}" . || throw "Docker build failed."
+docker build -t "${imageName}:${imageTag}" ..\.. || throw "Docker build failed."
 
 Write-Host "Tagging for ACR → ${fullImageName} ..."
 docker tag "${imageName}:${imageTag}" $fullImageName || throw "Tagging failed."

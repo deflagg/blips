@@ -16,10 +16,15 @@ param principalId string
 //var cosmosAccountId = resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)
 //var roleDefGuid = guid(coreRgId, cosmosAccountId, 'Cosmos-DB-Db-Container-Manager')
 //var roleDefinitionId   = resourceId(resourceGroupName, 'Microsoft.Authorization/roleDefinitions', roleDefGuid)
-var roleDefinitionId = '${resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Data Contributor
+//var roleDefinitionId = '${resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Data Contributor
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: cosmosAccountName
+}
+
+// get existing role definition
+resource roleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  name: guid(resourceGroup().id, cosmosAccount.id, 'Cosmos-DB-Db-Container-Manager')
 }
 
 resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
@@ -49,7 +54,7 @@ resource assign 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-0
   parent: cosmosAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: roleDefinitionId
+    roleDefinitionId: roleDefinition.id
     scope: scope
   }
 }

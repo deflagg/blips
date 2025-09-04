@@ -21,7 +21,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
     databaseAccountOfferType: 'Standard'
 
     // **Free Tier** – only one per subscription
-    enableFreeTier: true
+    //enableFreeTier: true
 
     // **Serverless** capability
     capabilities: [

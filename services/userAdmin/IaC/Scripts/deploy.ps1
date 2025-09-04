@@ -94,7 +94,8 @@ if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
 Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
 
 # Deploy infrastructure
-az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep
+az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep `
+    --parameters principalId=$uamiClientId 
 
 # Wait for propagation
 Start-Sleep -Seconds 5

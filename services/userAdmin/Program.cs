@@ -122,7 +122,7 @@ builder.Services
         .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "ready" });
 
 // ---------- App Services ----------
-builder.Services.AddSingleton<IBlipsRepository, CosmosBlipsRepository>();
+builder.Services.AddSingleton<IAccountsRepository, AccountsRepository>();
 builder.Services.AddSingleton<ICosmosInitializer, CosmosInitializer>();
 builder.Services.AddSingleton<IPersonRepository>(sp =>
     new PersonRepository(

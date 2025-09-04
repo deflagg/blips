@@ -14,10 +14,10 @@ public interface IAccountsRepository
     Task<(bool Deleted, double RU)> DeleteAsync(string id, string? ifMatchEtag, CancellationToken ct);
 }
 
-public sealed class CosmosAccountsRepository : IAccountsRepository
+public sealed class AccountsRepository : IAccountsRepository
 {
     private readonly Container _container;
-    public CosmosAccountsRepository(CosmosClient client, IOptions<CosmosOptions> opt)
+    public AccountsRepository(CosmosClient client, IOptions<CosmosOptions> opt)
     {
         var o = opt.Value;
         var db = o.Databases["UserAdmin"];

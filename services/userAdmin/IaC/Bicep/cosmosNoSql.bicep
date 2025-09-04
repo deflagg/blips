@@ -12,11 +12,11 @@ param principalId string
 
 
 // Build role definition id for 'Cosmos-DB-Db-Container-Manager'
-var coreRgId        = subscriptionResourceId('Microsoft.Resources/resourceGroups', resourceGroupName)
-var cosmosAccountId = resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)
-var roleDefGuid = guid(coreRgId, cosmosAccountId, 'Cosmos-DB-Db-Container-Manager')
-var roleDefinitionId   = resourceId(resourceGroupName, 'Microsoft.Authorization/roleDefinitions', roleDefGuid)
-
+//var coreRgId        = subscriptionResourceId('Microsoft.Resources/resourceGroups', resourceGroupName)
+//var cosmosAccountId = resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)
+//var roleDefGuid = guid(coreRgId, cosmosAccountId, 'Cosmos-DB-Db-Container-Manager')
+//var roleDefinitionId   = resourceId(resourceGroupName, 'Microsoft.Authorization/roleDefinitions', roleDefGuid)
+var roleDefinitionId = '${resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Data Contributor
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: cosmosAccountName

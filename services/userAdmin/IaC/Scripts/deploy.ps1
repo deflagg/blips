@@ -15,7 +15,7 @@ $agwIp       = ""           # Application Gateway public IP
 # --------------------------------------------------------------------------
 
 $folderName  = "userAdmin"
-Set-Location -Path "./services/${folderName}"
+Set-Location -Path "./services/${folderName}/IaC/Scripts"
 
 # az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
 
@@ -92,6 +92,9 @@ az identity federated-credential create `
     --audiences api://AzureADTokenExchange
 if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
 Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
+
+# Deploy infrastructure
+az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep
 
 # Wait for propagation
 Start-Sleep -Seconds 5

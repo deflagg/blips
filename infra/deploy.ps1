@@ -1,6 +1,6 @@
 param(
     [string]$ResourceGroupName = "sysdesign",
-    [string]$Location          = "eastus2"
+    [string]$Location          = "eastus"
 )
 
 $TemplateFile   = Join-Path $PSScriptRoot 'main.bicep'

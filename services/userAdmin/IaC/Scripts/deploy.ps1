@@ -115,8 +115,13 @@ Write-Host "Federated identity credential created on '$ficIdentityName': ${fedCr
 $uamiPrincipalId = az identity show -g $aksRG -n $ficIdentityName --query principalId -o tsv
 if (-not $uamiPrincipalId) { throw "Couldn't resolve principalId for $ficIdentityName" }
 
+# get object id of uamiPrincipalId
+$uamiObjectId = az ad sp show --id $uamiPrincipalId --query objectId -o tsv
+
+
 az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep `
-    --parameters principalId=$uamiPrincipalId
+    --parameters principalId=$uamiPrincipalId `
+    --parameters objectId=$uamiObjectId
 
 # Wait for propagation
 Start-Sleep -Seconds 5

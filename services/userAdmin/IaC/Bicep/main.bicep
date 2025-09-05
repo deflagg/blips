@@ -1,5 +1,6 @@
 param cosmosAccountName string = 'cosmos-sysdesign'
 param principalId string
+param objectId string
 
 
 module cosmos 'cosmosNoSql.bicep' = {
@@ -7,5 +8,6 @@ module cosmos 'cosmosNoSql.bicep' = {
   params: {
     cosmosAccountName: cosmosAccountName
     principalId: principalId
+    objectId: objectId
   }
 }

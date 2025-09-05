@@ -75,7 +75,7 @@ module gremlindbModule './modules/gremlindb/main.bicep' = {
   name: 'gremlindbModule'
   params: {
     projectName: projectName
-    location: location
+    location: 'eastus2' //location
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }

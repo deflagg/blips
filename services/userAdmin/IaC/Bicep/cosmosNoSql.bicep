@@ -11,23 +11,16 @@ param scope string = '/dbs/${databaseName}'
 param principalId string
 
 
-// Build role definition id for 'Cosmos-DB-Db-Container-Manager'
-//var coreRgId        = subscriptionResourceId('Microsoft.Resources/resourceGroups', resourceGroupName)
-//var cosmosAccountId = resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)
-//var roleDefGuid = guid(coreRgId, cosmosAccountId, 'Cosmos-DB-Db-Container-Manager')
-//var roleDefinitionId   = resourceId(resourceGroupName, 'Microsoft.Authorization/roleDefinitions', roleDefGuid)
-//var roleDefinitionId = '${resourceId(resourceGroupName, 'Microsoft.DocumentDB/databaseAccounts', cosmosAccountName)}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Data Contributor
-
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: cosmosAccountName
 }
 
 
 // get existing role definition
-resource roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-05-01-preview' existing = {
-  name: guid(resourceGroup().id, cosmosAccount.id, 'Cosmos-DB-Db-Container-Manager')
-  parent: cosmosAccount
-}
+// resource roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-05-01-preview' existing = {
+//   name: guid(resourceGroup().id, cosmosAccount.id, 'Cosmos-DB-Db-Container-Manager')
+//   parent: cosmosAccount
+// }
 
 resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
   name: databaseName
@@ -56,13 +49,15 @@ resource sqlContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contai
 var dbScope = '${cosmosAccount.id}/dbs/${databaseName}'
 
 resource assign 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-04-15' = {
-  name: guid(cosmosAccount.id, principalId, scope, 'nosql-rbac')
+  name: guid(cosmosAccount.id, principalId, dbScope, 'nosql-rbac')
   parent: cosmosAccount
   properties: {
-    principalId: principalId
-    roleDefinitionId: roleDefinition.id
-    scope: dbScope
+    principalId: principalId       // objectId (GUID) of your UAMI
+    roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Cosmos DB Built-in Data Contributor (data plane)
+    scope: dbScope                 // scope at DB level
   }
+  // Ensure the DB exists before we create the assignment
+  dependsOn: [ sqlDb ]
 }
 
 output dbId string = sqlDb.id

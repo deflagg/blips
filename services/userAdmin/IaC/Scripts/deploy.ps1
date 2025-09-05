@@ -110,8 +110,11 @@ if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
 Write-Host "Federated identity credential created on '$ficIdentityName': ${fedCredName}" -ForegroundColor Green
 
 # Deploy infrastructure (unchanged; now parameterized with the NEW UAMI clientId)
+$uamiPrincipalId = az identity show -g $aksRG -n $ficIdentityName --query principalId -o tsv
+if (-not $uamiPrincipalId) { throw "Couldn't resolve principalId for $ficIdentityName" }
+
 az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep `
-    --parameters principalId=$uamiClientId 
+    --parameters principalId=$uamiPrincipalId
 
 # Wait for propagation
 Start-Sleep -Seconds 5

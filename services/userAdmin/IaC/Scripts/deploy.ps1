@@ -6,7 +6,7 @@ $aksName     = "aks-sysdesign"         # 👈 keep in sync with your bicep
 $aksRG       = "sysdesign"             # 👈 resource group for the AKS cluster
 $release     = "useradmin"
 $namespace   = "useradmin"
-$chartPath   = "./helm"
+$chartPath   = (Resolve-Path (Join-Path $PSScriptRoot '..\..\helm')).Path
 # DNS
 $recordRG    = "global"
 $zoneName    = "priv.dns-sysdesign.com"
@@ -20,7 +20,9 @@ $ficIdentityName = "useradmin-fic-identity"
 $folderName  = "userAdmin"
 Set-Location -Path "./services/${folderName}/IaC/Scripts"
 
-# az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
+if (-not (Test-Path (Join-Path $chartPath 'Chart.yaml'))) {
+  throw "Helm chart not found at: $chartPath"
+}
 
 # --------------------------------------------------------------------------
 # 1. Login to Azure Container Registry

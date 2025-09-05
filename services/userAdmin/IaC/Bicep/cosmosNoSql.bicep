@@ -6,7 +6,7 @@ param partitionKeyPath string = '/AccountId'
 
 // The UAMI (User Assigned Managed Identity) principal ID
 param principalId string
-  
+
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: cosmosAccountName
@@ -55,6 +55,31 @@ resource assign 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-0
   }
   // Ensure the DB exists before we create the assignment
   dependsOn: [ sqlDb ]
+}
+
+var keyVaultName string = 'kv-primary-sysdesign'
+resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
+  name: keyVaultName
+}
+
+resource aksKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, 'kv-secrets-user')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
+    principalId: principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource aksKvCertificatesUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, 'kv-certificates-user')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
+    principalId: principalId
+    principalType: 'ServicePrincipal'
+  }
 }
 
 output dbId string = sqlDb.id

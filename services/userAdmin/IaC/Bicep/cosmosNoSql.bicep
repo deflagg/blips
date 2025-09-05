@@ -22,6 +22,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existi
   name: cosmosAccountName
 }
 
+
 // get existing role definition
 resource roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-05-01-preview' existing = {
   name: guid(resourceGroup().id, cosmosAccount.id, 'Cosmos-DB-Db-Container-Manager')
@@ -50,13 +51,17 @@ resource sqlContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contai
   }
 }
 
+
+// Build FULL data-plane scopes (ARM requires the fully-qualified path)
+var dbScope = '${cosmosAccount.id}/dbs/${databaseName}'
+
 resource assign 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-04-15' = {
   name: guid(cosmosAccount.id, principalId, scope, 'nosql-rbac')
   parent: cosmosAccount
   properties: {
     principalId: principalId
     roleDefinitionId: roleDefinition.id
-    scope: scope
+    scope: dbScope
   }
 }
 

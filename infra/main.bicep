@@ -248,7 +248,7 @@ module cosmosdbModule './modules/cosmosdb/main.bicep' = {
   name: 'cosmosdbModule'
   params: {
     projectName: projectName
-    location: location
+    location: 'eastus' //location
     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
   }
 }

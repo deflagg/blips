@@ -65,7 +65,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
 }
 
 resource aksKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, 'kv-secrets-user')
+  name: guid(keyVault.id, principalId, 'kv-secrets-user')
   scope: keyVault
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
@@ -75,7 +75,7 @@ resource aksKvSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 }
 
 resource aksKvCertificatesUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, 'kv-certificates-user')
+  name: guid(keyVault.id, principalId, 'kv-certificates-user')
   scope: keyVault
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')

@@ -120,8 +120,7 @@ $uamiObjectId = az ad sp show --id $uamiPrincipalId --query objectId -o tsv
 
 
 az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep `
-    --parameters principalId=$uamiPrincipalId `
-    --parameters objectId=$uamiObjectId
+    --parameters principalId=$uamiPrincipalId
 
 # Wait for propagation
 Start-Sleep -Seconds 5

@@ -7,7 +7,6 @@ param partitionKeyPath string = '/AccountId'
 
 // The UAMI (User Assigned Managed Identity) principal ID
 param principalId string
-param objectId string 
 
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {

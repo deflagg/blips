@@ -1,15 +1,12 @@
-param resourceGroupName string = 'sysdesign'
 param cosmosAccountName string = 'cosmos-sysdesign'
 param databaseName string = 'UserAdminDB'
 param containerName string = 'Accounts'
 param partitionKeyPath string = '/AccountId'
 
-// Scope under the account, e.g. /dbs/<db> or /dbs/<db>/colls/<container>
-param scope string = '/dbs/${databaseName}'
 
 // The UAMI (User Assigned Managed Identity) principal ID
 param principalId string
-
+  
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = {
   name: cosmosAccountName

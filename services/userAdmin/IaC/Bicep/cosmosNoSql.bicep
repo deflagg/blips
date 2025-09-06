@@ -13,13 +13,6 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existi
   name: cosmosAccountName
 }
 
-
-// get existing role definition
-// resource roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-05-01-preview' existing = {
-//   name: guid(resourceGroup().id, cosmosAccount.id, 'Cosmos-DB-Db-Container-Manager')
-//   parent: cosmosAccount
-// }
-
 resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
   name: databaseName
   parent: cosmosAccount

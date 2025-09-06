@@ -55,7 +55,9 @@ resource docDbContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' e
   name: '5bd9cd88-fe45-4216-938b-f97437e15450'
 }
 
-// Grant the UAMI permission to list RW keys on the account
+// Fully-qualified scopes (OK for role *definitions*)
+var dbFqScope    = '${gremlinAccount.id}/dbs/${gremlinDatabaseName}'
+var graphFqScope = '${gremlinAccount.id}/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
 
 
 
@@ -71,7 +73,7 @@ resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gre
   properties: {
     roleName: 'Service Gremlin DB Data Operator'
     type: 'CustomRole'
-    assignableScopes: [ '/dbs/${gremlinDatabaseName}']
+    assignableScopes: [ dbFqScope ]
     permissions: [
       {
         dataActions: [
@@ -98,6 +100,7 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
     roleDefinitionId: serviceGremlinDbDataOperator.id
     scope: '/dbs/${gremlinDatabaseName}' // use '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}' to limit to one graph
   }
+  dependsOn: [ gremlinDb, gremlinGraph ]
 }
 
 

@@ -55,52 +55,51 @@ resource docDbContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' e
   name: '5bd9cd88-fe45-4216-938b-f97437e15450'
 }
 
-// Fully-qualified scopes (OK for role *definitions*)
-var dbFqScope    = '${gremlinAccount.id}/dbs/${gremlinDatabaseName}'
-var graphFqScope = '${gremlinAccount.id}/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
+// keep your params and account/db/graph resources as-is
 
+var accountId      = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
+var dbFqScope      = '${accountId}/dbs/${gremlinDatabaseName}'
+var graphFqScope   = '${dbFqScope}/colls/${gremlinGraphName}'
+var roleDefGuid    = guid(accountId, 'service-gremlin-db-data-operator') // stable GUID
 
-
-// =========================================================
-/* DATA-PLANE: custom Cosmos Gremlin role to work INSIDE one database
-   Includes readMetadata (required by SDKs) + graph/entity operations.
-   Assign it at: scope = '${cosmosAccount.id}/dbs/${gremlinDbName}'
-*/
-// =========================================================
+// Custom Gremlin data-plane role (definition)
 resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-  name: guid(gremlinAccount.id, 'service-gremlin-db-data-operator')
+  name: roleDefGuid                 // use GUID as the child resource name
   parent: gremlinAccount
   properties: {
+    id: roleDefGuid                 // IMPORTANT: set the role definition's Id (GUID)
     roleName: 'Service Gremlin DB Data Operator'
     type: 'CustomRole'
-    assignableScopes: [ dbFqScope ]
+    assignableScopes: [
+      dbFqScope                     // MUST be fully-qualified
+    ]
     permissions: [
       {
         dataActions: [
-          // Required by SDKs to list DB/graph metadata (limited by assignment scope)
           'Microsoft.DocumentDB/databaseAccounts/readMetadata'
-
-          // Graph data access (vertices/edges) + traversals
           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/entities/*'
           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/executeQuery'
-
           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/readChangeFeed'
         ]
-        // NOTE: Cosmos data-plane RBAC ignores notDataActions; omit it.
       }
     ]
   }
 }
 
+// Role assignment (scope is RELATIVE to the account)
 resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments@2025-05-01-preview' = {
-  name: guid(gremlinAccount.id, principalId, gremlinDatabaseName, 'rw')
+  name: guid(accountId, principalId, gremlinDatabaseName, 'rw')
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: serviceGremlinDbDataOperator.id
-    scope: '/dbs/${gremlinDatabaseName}' // use '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}' to limit to one graph
+    roleDefinitionId: roleDefGuid    // pass the GUID, not the ARM resourceId
+    scope: '/dbs/${gremlinDatabaseName}' // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
-  dependsOn: [ gremlinDb, gremlinGraph ]
+  dependsOn: [
+    gremlinDb
+    gremlinGraph
+    serviceGremlinDbDataOperator
+  ]
 }
 
 

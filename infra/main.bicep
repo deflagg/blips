@@ -252,14 +252,14 @@ module cosmosdbModule './modules/cosmosdb/main.bicep' = {
   }
 }
 
-// module gremlindbModule './modules/gremlindb/main.bicep' = {
-//   name: 'gremlindbModule'
-//   params: {
-//     projectName: projectName
-//     location: 'eastus' //location
-//     logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
-//   }
-// }
+module gremlindbModule './modules/gremlindb/main.bicep' = {
+  name: 'gremlindbModule'
+  params: {
+    projectName: projectName
+    location: location
+    logAnalyticsWorkspaceId: logAnalyticsModule.outputs.workspaceId
+  }
+}
 
 // APIM sits in front of the App Gateway created by the AKS module.
 // module apimModule './modules/apim.bicep' = {

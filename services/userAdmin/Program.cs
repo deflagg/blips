@@ -83,24 +83,29 @@ builder.Services.AddSingleton<GremlinClient>(sp =>
 {
     var o = sp.GetRequiredService<IOptions<GremlinOptions>>().Value;
 
-    // No client ID in code — Workload Identity env vars are injected into the pod
+    // Managed Identity / Service Principal via DefaultAzureCredential
     var cred = new Azure.Identity.DefaultAzureCredential();
-    var arm = new Azure.ResourceManager.ArmClient(cred);
-    var id = CosmosDBAccountResource.CreateResourceIdentifier(o.SubscriptionId, o.ResourceGroup, o.AccountName);
-    var acct = arm.GetCosmosDBAccountResource(id);
 
-    var keys = acct.GetKeysAsync().GetAwaiter().GetResult(); // or GetReadOnlyKeysAsync()
-    var key = keys.Value.PrimaryMasterKey;
+    // 1) Get an AAD access token for Cosmos DB data plane
+    var token = cred.GetToken(
+        new Azure.Core.TokenRequestContext(new[] { "https://cosmos.azure.com/.default" })
+    ).Token;
 
+    // 2) Connect with SASL PLAIN: username = resource path, password = AAD token
     var server = new Gremlin.Net.Driver.GremlinServer(
         $"{o.AccountName}.gremlin.cosmos.azure.com",
         443,
         enableSsl: true,
         username: $"/dbs/{o.DatabaseId}/colls/{o.GraphId}",
-        password: key);
+        password: token
+    );
 
-    return new Gremlin.Net.Driver.GremlinClient(server, new Gremlin.Net.Structure.IO.GraphSON.GraphSON2MessageSerializer());
+    return new Gremlin.Net.Driver.GremlinClient(
+        server,
+        new Gremlin.Net.Structure.IO.GraphSON.GraphSON2MessageSerializer()
+    );
 });
+
 
 // ---------- CORS ------------
 builder.Services.AddCors(options =>

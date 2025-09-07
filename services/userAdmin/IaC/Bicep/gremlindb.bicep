@@ -72,8 +72,7 @@ resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gre
     roleName: 'Service Gremlin DB Data Operator'
     type: 'CustomRole'
     assignableScopes: [
-      //dbFqScope // must be fully-qualified scope under the account
-      'dbs/${gremlinDatabaseName}'
+      dbFqScope
     ]
     permissions: [
       {

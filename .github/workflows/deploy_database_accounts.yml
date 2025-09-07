@@ -41,7 +41,7 @@ jobs:
         enable-AzPSSession: true
 
     # Run the script
-    - name: Run deploy.ps1
+    - name: Run deploy_database_accounts.ps1
       uses: azure/powershell@v2
       env:
           AZURE_AKS_APPGW_CHAIN_PFX_BASE64: ${{ secrets.AZURE_AKS_APPGW_CHAIN_PFX_BASE64 }}

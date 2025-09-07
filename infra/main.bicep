@@ -239,8 +239,7 @@ module aksModule './modules/aks.bicep' = {
     gremlinAccountName     : 'gremlin-${projectName}'
   }
   dependsOn: [
-    cosmosdbModule
-    gremlindbModule
+    
   ]
 }
 

@@ -60,7 +60,7 @@ resource docDbContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' e
 var accountId      = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
 var dbFqScope      = '${accountId}/dbs/${gremlinDatabaseName}'
 var graphFqScope   = '${dbFqScope}/colls/${gremlinGraphName}'
-var roleDefGuid    = guid(accountId, 'service-gremlin-db-data-operator') // stable GUID
+var roleDefGuid    = guid(accountId, principalId, 'service-gremlin-db-data-operator') // stable GUID
 
 // Custom Gremlin data-plane role (definition)
 resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
@@ -92,7 +92,7 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: serviceGremlinDbDataOperator.id    // pass the GUID, not the ARM resourceId
+    roleDefinitionId: '${gremlinAccount.id}/gremlinRoleDefinitions/${roleDefGuid}'    // pass the GUID, not the ARM resourceId
     scope: '/dbs/${gremlinDatabaseName}' // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [

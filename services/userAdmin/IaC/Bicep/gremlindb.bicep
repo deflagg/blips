@@ -55,23 +55,23 @@ resource docDbContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' e
   name: '5bd9cd88-fe45-4216-938b-f97437e15450'
 }
 
-// keep your params and account/db/graph resources as-is
+// helpful IDs
+var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
+var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
+var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
+var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-db-data-operator')
+var roleDefArmId      = '${gremlinAccount.id}/gremlinRoleDefinitions/${roleDefGuid}' // <-- full ARM id
 
-var accountId      = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
-var dbFqScope      = '${accountId}/dbs/${gremlinDatabaseName}'
-var graphFqScope   = '${dbFqScope}/colls/${gremlinGraphName}'
-var roleDefGuid    = guid(accountId, principalId, 'service-gremlin-db-data-operator') // stable GUID
-
-// Custom Gremlin data-plane role (definition)
+// Custom Gremlin data-plane role
 resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-  name: roleDefGuid                 // use GUID as the child resource name
+  name: roleDefGuid
   parent: gremlinAccount
   properties: {
-    id: roleDefGuid                 // IMPORTANT: set the role definition's Id (GUID)
+    id: roleDefGuid
     roleName: 'Service Gremlin DB Data Operator'
     type: 'CustomRole'
     assignableScopes: [
-      dbFqScope                     // MUST be fully-qualified
+      dbFqScope // must be fully-qualified scope under the account
     ]
     permissions: [
       {
@@ -92,15 +92,15 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: '${gremlinAccount.id}/gremlinRoleDefinitions/${roleDefGuid}'    // pass the GUID, not the ARM resourceId
-    scope: '/dbs/${gremlinDatabaseName}' // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
+    roleDefinitionId: roleDefArmId             // <-- use the ARM id, not just the GUID
+    scope: '/dbs/${gremlinDatabaseName}'       // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [
     gremlinDb
     gremlinGraph
+    serviceGremlinDbDataOperator               // ensure role def exists first
   ]
 }
-
 
 // ---------- Outputs ----------
 // output gremlinDatabaseId string = gremlinDb.id

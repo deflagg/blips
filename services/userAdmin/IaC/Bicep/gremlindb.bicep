@@ -60,7 +60,8 @@ var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', grem
 var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
 var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
 var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-db-data-operator')
-var roleDefArmId      = '${gremlinAccount.id}/gremlinRoleDefinitions/${roleDefGuid}' // <-- full ARM id
+//var roleDefArmId      = '${gremlinAccount.id}/gremlinRoleDefinitions/${roleDefGuid}' // <-- full ARM id
+var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
 
 // Custom Gremlin data-plane role
 resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {

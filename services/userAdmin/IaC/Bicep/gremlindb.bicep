@@ -63,14 +63,16 @@ var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', grem
 var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
 var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
 var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-read-metadata-role')
+var roleDefGuidRW       = guid(accountId, principalId, 'service-gremlin-read-write-role')
 var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
+var roleDefArmIdRWId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuidRW)
 
 
 resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-  name: roleDefGuid
+  name: roleDefGuidRW
   parent: gremlinAccount
   properties: {
-    id: roleDefGuid
+    id: roleDefGuidRW
     roleName: 'Service Gremlin DB Data Operator'
     type: 'CustomRole'
     assignableScopes: [
@@ -95,7 +97,7 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: roleDefArmId             // <-- use the ARM id, not just the GUID
+    roleDefinitionId: roleDefArmIdRWId             // <-- use the ARM id, not just the GUID
     scope: dbFqScope   // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [

@@ -97,7 +97,7 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: roleDefArmIdRWId             // <-- use the ARM id, not just the GUID
+    roleDefinitionId: serviceGremlinDbDataOperator.id             // <-- use the ARM id, not just the GUID
     scope: dbFqScope   // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [

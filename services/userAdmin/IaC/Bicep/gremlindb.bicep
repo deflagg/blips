@@ -63,28 +63,28 @@ var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-db-data-op
 var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
 
 // Custom Gremlin data-plane role
-resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-  name: roleDefGuid
-  parent: gremlinAccount
-  properties: {
-    id: roleDefGuid
-    roleName: 'Service Gremlin DB Data Operator'
-    type: 'CustomRole'
-    assignableScopes: [
-      dbFqScope
-    ]
-    permissions: [
-      {
-        dataActions: [
-          'Microsoft.DocumentDB/databaseAccounts/readMetadata'
-          'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/entities/*'
-          'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/executeQuery'
-          'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/readChangeFeed'
-        ]
-      }
-    ]
-  }
-}
+// resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
+//   name: roleDefGuid
+//   parent: gremlinAccount
+//   properties: {
+//     id: roleDefGuid
+//     roleName: 'Service Gremlin DB Data Operator'
+//     type: 'CustomRole'
+//     assignableScopes: [
+//       dbFqScope
+//     ]
+//     permissions: [
+//       {
+//         dataActions: [
+//           'Microsoft.DocumentDB/databaseAccounts/readMetadata'
+//           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/entities/*'
+//           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/executeQuery'
+//           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/readChangeFeed'
+//         ]
+//       }
+//     ]
+//   }
+// }
 
 // Role assignment (scope is RELATIVE to the account)
 resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments@2025-05-01-preview' = {
@@ -92,13 +92,13 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: roleDefArmId             // <-- use the ARM id, not just the GUID
+    roleDefinitionId: docDbContributor.id // roleDefArmId             // <-- use the ARM id, not just the GUID
     scope: dbFqScope   // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [
     gremlinDb
     gremlinGraph
-    serviceGremlinDbDataOperator               // ensure role def exists first
+    //serviceGremlinDbDataOperator               // ensure role def exists first
   ]
 }
 

@@ -62,32 +62,8 @@ resource gremlinDataContributor 'Microsoft.DocumentDB/databaseAccounts/gremlinRo
 var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
 var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
 //var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
-//var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-db-data-operator')
+var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-read-metadata-role')
 //var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
-
-// Custom Gremlin data-plane role
-// resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-//   name: roleDefGuid
-//   parent: gremlinAccount
-//   properties: {
-//     id: roleDefGuid
-//     roleName: 'Service Gremlin DB Data Operator'
-//     type: 'CustomRole'
-//     assignableScopes: [
-//       dbFqScope
-//     ]
-//     permissions: [
-//       {
-//         dataActions: [
-//           'Microsoft.DocumentDB/databaseAccounts/readMetadata'
-//           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/entities/*'
-//           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/executeQuery'
-//           'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/readChangeFeed'
-//         ]
-//       }
-//     ]
-//   }
-// }
 
 // Role assignment (scope is RELATIVE to the account)
 resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments@2025-05-01-preview' = {
@@ -103,6 +79,39 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
     gremlinGraph
     //serviceGremlinDbDataOperator               // ensure role def exists first
   ]
+}
+
+
+// Custom Gremlin data-plane role
+resource serviceGremlinDbReadMetadataRole 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
+  name: roleDefGuid
+  parent: gremlinAccount
+  properties: {
+    id: roleDefGuid
+    roleName: 'Service Gremlin DB Read Metadata Role'
+    type: 'CustomRole'
+    assignableScopes: [
+      gremlinAccount.id
+    ]
+    permissions: [
+      {
+        dataActions: [
+          'Microsoft.DocumentDB/databaseAccounts/readMetadata'
+        ]
+      }
+    ]
+  }
+}
+
+
+resource gremlinReadMetaAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments@2025-05-01-preview' = {
+  name: guid(gremlinAccount.id, principalId, 'readmeta-at-root')
+  parent: gremlinAccount
+  properties: {
+    principalId: principalId
+    roleDefinitionId: serviceGremlinDbReadMetadataRole.id // ARM id of the custom role
+    scope: '/'  // account-level scope so the SDK’s metadata read is authorized
+  }
 }
 
 // ---------- Outputs ----------

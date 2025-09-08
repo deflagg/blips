@@ -49,18 +49,21 @@ resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/gr
   }
 }
 
-// Built-in role: DocumentDB Account Contributor
-resource docDbContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: subscription()
-  name: '5bd9cd88-fe45-4216-938b-f97437e15450'
+// (Option A) Reference the built-in Gremlin Data Contributor role under this account
+// Built-in Data Reader = 00000000-0000-0000-0000-000000000001
+// Built-in Data Contributor = 00000000-0000-0000-0000-000000000002
+resource gremlinDataContributor 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' existing = {
+  parent: gremlinAccount
+  name: '00000000-0000-0000-0000-000000000002'
 }
+
 
 // helpful IDs
 var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
 var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
-var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
-var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-db-data-operator')
-var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
+//var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
+//var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-db-data-operator')
+//var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
 
 // Custom Gremlin data-plane role
 // resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
@@ -92,7 +95,7 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: docDbContributor.id // roleDefArmId             // <-- use the ARM id, not just the GUID
+    roleDefinitionId: gremlinDataContributor.id // roleDefArmId             // <-- use the ARM id, not just the GUID
     scope: dbFqScope   // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [

@@ -136,7 +136,7 @@ resource gremlinReadMetaAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRol
   properties: {
     principalId: principalId
     roleDefinitionId: serviceGremlinDbReadMetadataRole.id // ARM id of the custom role
-    scope: '/'  // account-level scope so the SDK’s metadata read is authorized
+    scope: gremlinAccount.id  // account-level scope so the SDK’s metadata read is authorized
   }
 }
 

@@ -61,9 +61,33 @@ resource gremlinDataContributor 'Microsoft.DocumentDB/databaseAccounts/gremlinRo
 // helpful IDs
 var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
 var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
-//var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
+var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
 var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-read-metadata-role')
-//var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
+var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
+
+
+resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
+  name: roleDefGuid
+  parent: gremlinAccount
+  properties: {
+    id: roleDefGuid
+    roleName: 'Service Gremlin DB Data Operator'
+    type: 'CustomRole'
+    assignableScopes: [
+      dbFqScope
+    ]
+    permissions: [
+      {
+        dataActions: [
+          'Microsoft.DocumentDB/databaseAccounts/readMetadata'
+          'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/entities/*'
+          'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/executeQuery'
+          'Microsoft.DocumentDB/databaseAccounts/gremlin/containers/readChangeFeed'
+        ]
+      }
+    ]
+  }
+}
 
 // Role assignment (scope is RELATIVE to the account)
 resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments@2025-05-01-preview' = {
@@ -71,7 +95,7 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: gremlinDataContributor.id // roleDefArmId             // <-- use the ARM id, not just the GUID
+    roleDefinitionId: roleDefArmId             // <-- use the ARM id, not just the GUID
     scope: dbFqScope   // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
   }
   dependsOn: [

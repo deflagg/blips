@@ -1,7 +1,3 @@
-// cosmos-gremlin-serverless.bicep
-// Creates a serverless Azure Cosmos DB account for Gremlin,
-// with one Gremlin database and one graph.
-
 // ---------- Parameters ----------
 @description('Globally unique name for the Cosmos DB account (3-44 lowercase letters/numbers).')
 param gremlinAccountName string
@@ -49,30 +45,19 @@ resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/gr
   }
 }
 
-// (Option A) Reference the built-in Gremlin Data Contributor role under this account
-// Built-in Data Reader = 00000000-0000-0000-0000-000000000001
-// Built-in Data Contributor = 00000000-0000-0000-0000-000000000002
-resource gremlinDataContributor 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' existing = {
-  parent: gremlinAccount
-  name: '00000000-0000-0000-0000-000000000002'
-}
-
-
 // helpful IDs
 var accountId         = resourceId('Microsoft.DocumentDB/databaseAccounts', gremlinAccountName)
 var dbFqScope         = '${accountId}/dbs/${gremlinDatabaseName}'
 var graphFqScope      = '${dbFqScope}/colls/${gremlinGraphName}'
-var roleDefGuid       = guid(accountId, principalId, 'service-gremlin-read-metadata-role')
-var roleDefGuidRW       = guid(accountId, principalId, 'service-gremlin-read-write-role')
-var roleDefArmId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuid)
-var roleDefArmIdRWId = resourceId('Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions', gremlinAccountName, roleDefGuidRW)
+var gremlinMetaGuid       = guid(accountId, principalId, 'service-gremlin-read-metadata-role')
+var gremlinRWGuid       = guid(accountId, principalId, 'service-gremlin-read-write-role')
 
 
 resource serviceGremlinDbDataOperator 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-  name: roleDefGuidRW
+  name: gremlinRWGuid
   parent: gremlinAccount
   properties: {
-    id: roleDefGuidRW
+    id: gremlinRWGuid
     roleName: 'Service Gremlin DB Data Operator'
     type: 'CustomRole'
     assignableScopes: [
@@ -97,23 +82,21 @@ resource appGremlinDbRWAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRole
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: serviceGremlinDbDataOperator.id             // <-- use the ARM id, not just the GUID
-    scope: dbFqScope   // or '/dbs/${gremlinDatabaseName}/colls/${gremlinGraphName}'
+    roleDefinitionId: serviceGremlinDbDataOperator.id 
+    scope: dbFqScope
   }
   dependsOn: [
     gremlinDb
     gremlinGraph
-    //serviceGremlinDbDataOperator               // ensure role def exists first
   ]
 }
 
-
 // Custom Gremlin data-plane role
 resource serviceGremlinDbReadMetadataRole 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleDefinitions@2025-05-01-preview' = {
-  name: roleDefGuid
+  name: gremlinMetaGuid
   parent: gremlinAccount
   properties: {
-    id: roleDefGuid
+    id: gremlinMetaGuid
     roleName: 'Service Gremlin DB Read Metadata Role'
     type: 'CustomRole'
     assignableScopes: [
@@ -129,14 +112,13 @@ resource serviceGremlinDbReadMetadataRole 'Microsoft.DocumentDB/databaseAccounts
   }
 }
 
-
 resource gremlinReadMetaAssign 'Microsoft.DocumentDB/databaseAccounts/gremlinRoleAssignments@2025-05-01-preview' = {
   name: guid(gremlinAccount.id, principalId, 'readmeta-at-root')
   parent: gremlinAccount
   properties: {
     principalId: principalId
-    roleDefinitionId: serviceGremlinDbReadMetadataRole.id // ARM id of the custom role
-    scope: gremlinAccount.id  // account-level scope so the SDK’s metadata read is authorized
+    roleDefinitionId: serviceGremlinDbReadMetadataRole.id
+    scope: gremlinAccount.id
   }
 }
 

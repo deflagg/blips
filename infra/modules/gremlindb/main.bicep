@@ -15,8 +15,5 @@ module gremlindbModule 'gremlindb.bicep' = {
   params: {
     gremlinAccountName: 'gremlin-${projectName}'
     location: location
-    gremlinDatabaseName: 'PersonGraphDb'
-    gremlinGraphName: 'PersonGraph'
-    graphPartitionKeyPath: '/PersonId'
   }
 }

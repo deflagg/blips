@@ -51,6 +51,37 @@ resource assign 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-0
   dependsOn: [ sqlDb ]
 }
 
+// Custom "read metadata" role scoped at the account root
+resource serviceSqlReadMetadataRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-05-01-preview' = {
+  name: guid(cosmosAccount.id, principalId, 'service-sql-read-metadata-role')
+  parent: cosmosAccount
+  properties: {
+    roleName: 'Service SQL DB Read Metadata Role'
+    type: 'CustomRole'
+    assignableScopes: [
+      cosmosAccount.id
+    ]
+    permissions: [
+      {
+        dataActions: [
+          'Microsoft.DocumentDB/databaseAccounts/readMetadata'
+        ]
+      }
+    ]
+  }
+}
+
+// Assign the metadata-only role at the account root
+resource sqlReadMetaAssign 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-05-01-preview' = {
+  name: guid(cosmosAccount.id, principalId, 'readmeta-at-root')
+  parent: cosmosAccount
+  properties: {
+    principalId:    principalId
+    roleDefinitionId: serviceSqlReadMetadataRole.id
+    scope:          cosmosAccount.id
+  }
+}
+
 var keyVaultName string = 'kv-primary-sysdesign'
 resource keyVault 'Microsoft.KeyVault/vaults@2024-12-01-preview' existing = {
   name: keyVaultName

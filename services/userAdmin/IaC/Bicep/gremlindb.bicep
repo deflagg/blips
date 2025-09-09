@@ -6,7 +6,7 @@ param principalId string
 
 var gremlinDatabaseName string = 'PersonGraphDb'
 var gremlinGraphName string = 'PersonGraph'
-var graphPartitionKeyPath string = '/PersonId'
+var graphPartitionKeyPath string = '/id'
 
 // get existing gremlin account
 resource gremlinAccount 'Microsoft.DocumentDB/databaseAccounts@2025-05-01-preview' existing = {

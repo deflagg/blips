@@ -170,14 +170,64 @@ static void SetRu(HttpResponse res, double ru) =>
     res.Headers["x-ms-request-charge"] = ru.ToString("0.###", CultureInfo.InvariantCulture);
 
 // Create (or upsert) a user
-persons.MapPost("/", async (IPersonRepository repo, HttpContext http, PersonCreateDto dto) =>
+persons.MapPost("/", async (
+    IAccountsRepository accounts,
+    IPersonRepository persons,
+    HttpContext http,
+    PersonCreateDto dto) =>
 {
     var now = DateTimeOffset.UtcNow;
-    var user = new Person(dto.Id, dto.DisplayName, dto.Email, now, now);
+    double ru = 0d;
 
-    (Person created, double ru) = await repo.UpsertPersonAsync(user, http.RequestAborted);
-    SetRu(http.Response, ru);
-    return Results.Created($"/useradmin/users/{created.Id}", created);
+    // Optional: short-circuit if the account already exists (treat as conflict)
+    var existing = await accounts.GetAsync(dto.Id, http.RequestAborted);
+    if (existing is not null)
+    {
+        ru += existing.Value.RU;
+        SetRu(http.Response, ru);
+        return Results.Conflict(new { error = "Account already exists." });
+    }
+
+    // 1) Create the Account (source of record)
+    var account = new Account
+    {
+        id = dto.Id,
+        // If your Account model has different names, map accordingly:
+        name = dto.DisplayName,
+        createdAt = now,
+        updatedAt = now
+    };
+
+    (Account createdAcc, string accEtag, double ruAcc) =
+        await accounts.CreateAsync(account, http.RequestAborted);
+    ru += ruAcc;
+
+    try
+    {
+        // 2) Create/Upsert the Person mirror
+        var person = new Person(dto.Id, dto.DisplayName, dto.Email, now, now);
+        (Person createdPerson, double ruPerson) =
+            await persons.UpsertPersonAsync(person, http.RequestAborted);
+        ru += ruPerson;
+
+        SetRu(http.Response, ru);
+        return Results.Created($"/users/{createdAcc.id}", new
+        {
+            account = createdAcc,
+            person = createdPerson
+        });
+    }
+    catch (Exception)
+    {
+        // Compensate: remove the account we just created to avoid drift
+        var (deleted, ruDel) = await accounts.DeleteAsync(account.id, accEtag, http.RequestAborted);
+        ru += ruDel;
+
+        SetRu(http.Response, ru);
+        return Results.Problem(
+            detail: "Account was created but mirroring to Person failed. The account has been rolled back.",
+            statusCode: StatusCodes.Status500InternalServerError);
+    }
 });
 
 // Update a person (idempotent upsert)

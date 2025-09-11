@@ -1,7 +1,7 @@
 param cosmosAccountName string = 'cosmos-sysdesign'
 param databaseName string = 'UserAdminDb'
 param containerName string = 'Accounts'
-param partitionKeyPath string = '/id'
+param partitionKeyPath string = '/accountId'
 
 
 

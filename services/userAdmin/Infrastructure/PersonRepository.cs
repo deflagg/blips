@@ -1,8 +1,5 @@
 using Gremlin.Net.Driver;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text.Json;
 using UserAdmin.Models;
 
@@ -38,102 +35,111 @@ public sealed class PersonRepository : IPersonRepository
 {
     private readonly GremlinClient _client;
 
-    // Name of the vertex property configured as the container's partition key
+    // Always "personId" for PersonGraphDB
     private readonly string _pkName;
 
-    // Function to derive the partition key value from a personId. Default assumes pk == id.
+    // Map from vertex id -> partition key value. For this DB, pk == id.
     private readonly Func<string, string> _pkForId;
 
     // Whether to maintain reverse edges for fast followers queries
     private readonly bool _maintainReverseEdge;
 
-    /// <param name="partitionKeyPropertyName">
-    /// The property name used as the partition key in your graph container (default: "personId").
-    /// </param>
-    /// <param name="pkForId">
-    /// Function that maps a vertex id to its partition key value. Defaults to identity (id == pk).
-    /// </param>
-    /// <param name="maintainReverseEdge">
-    /// If true, writes a mirrored "followedBy" edge for fast followers queries.
-    /// </param>
     public PersonRepository(
         GremlinClient client,
-        string partitionKeyPropertyName = "PersonId",
+        string partitionKeyPropertyName = "personId",
         Func<string, string>? pkForId = null,
         bool maintainReverseEdge = true)
     {
         _client = client;
-        _pkName = partitionKeyPropertyName;
-        _pkForId = pkForId ?? (id => id);
+        _pkName = partitionKeyPropertyName;          // should remain "personId"
+        _pkForId = pkForId ?? (id => id);            // pk == id in this graph
         _maintainReverseEdge = maintainReverseEdge;
     }
 
+    // ---------------- Users ----------------
+
     public async Task<(Person, double)> UpsertPersonAsync(Person p, CancellationToken ct = default)
     {
-        var uid = p.Id ?? throw new ArgumentNullException(nameof(p.Id));
-         var pk  = _pkForId(uid);
-         
-        // NOTE: property key names (like the PK) cannot be parameterized as bindings; we inline the string.
+        if (p is null) throw new ArgumentNullException(nameof(p));
+        var personId = p.PersonId ?? throw new ArgumentNullException(nameof(p.PersonId));
+
+        // PK == ID for PersonGraphDB
+        var partitionKey = personId;
+
+        // Server-managed timestamps
+        var nowIso = Iso(DateTimeOffset.UtcNow);
+
+        // CREATE: set PK exactly once (personId). UPDATE: never touch PK.
         var q = $@"
-g.V([pid, uid]).fold().
+g.V([personId, personId]).fold().
   coalesce(
+    // UPDATE (vertex exists)
     unfold()
-      .property('displayName', name)
+      .property('name', name)
       .property('email', email)
-      .property('updatedAt', updated),
+      .property('updatedAt', updatedAt),
+    // CREATE (vertex missing)
     addV('person')
-      .property('{_pkName}', pid)
-      .property('id', uid)
-      .property('displayName', name)
+      .property('{_pkName}', personId)   // <-- set PK once
+      .property('id', personId)          // element id == personId
+      .property('accountId', accountId)
+      .property('name', name)
       .property('email', email)
-      .property('createdAt', created)
-      .property('updatedAt', updated)
+      .property('createdAt', createdAt)
+      .property('updatedAt', updatedAt)
   )
-  .project('id','displayName','email','createdAt','updatedAt')
-  .by(values('id'))
-  .by(values('displayName'))
+  .project('id','personId','accountId','name','email','createdAt','updatedAt')
+  .by(id())
+  .by(values('personId'))
+  .by(coalesce(values('accountId'), constant('')))
+  .by(values('name'))
   .by(coalesce(values('email'), constant('')))
   .by(values('createdAt'))
   .by(values('updatedAt'))
 ";
 
-        var u = new Dictionary<string, object> {
-            ["pid"]     = uid,                 // PK value
-            ["uid"]     = uid,                // vertex id
-            ["name"]    = p.DisplayName,
-            ["email"]   = p.Email ?? "",      // primitives only
-            ["created"] = Iso(p.CreatedAt),   // ISO strings
-            ["updated"] = Iso(p.UpdatedAt)
+        var bindings = new Dictionary<string, object> {
+            ["personId"]  = personId,
+            ["accountId"] = p.AccountId ?? "",
+            ["name"]      = p.Name,
+            ["email"]     = p.Email ?? "",
+            ["createdAt"] = nowIso,
+            ["updatedAt"] = nowIso
         };
 
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, u);
+        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, bindings);
         var mapped = MapPerson(rs.Single());
         return (mapped, ReadRu(rs));
     }
 
     public async Task<(Person?, double)> GetPersonAsync(string personId, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
-
+        // PK == ID
         var q = @"
-g.V([pk, uid])
-  .project('id','displayName','email','createdAt','updatedAt')
-  .by(values('id'))
-  .by(values('displayName'))
+g.V([personId, personId]).fold().
+  coalesce(unfold(), V().hasLabel('person').hasId(personId))
+  .limit(1)
+  .project('id','personId','accountId','name','email','createdAt','updatedAt')
+  .by(id())
+  .by(values('personId'))
+  .by(coalesce(values('accountId'), constant('')))
+  .by(values('name'))
   .by(coalesce(values('email'), constant('')))
   .by(values('createdAt'))
   .by(values('updatedAt'))
 ";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() { ["uid"] = personId, ["pk"] = pk });
+        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() { ["personId"] = personId });
         var person = rs.Any() ? MapPerson(rs.Single()) : null;
         return (person, ReadRu(rs));
     }
 
     public async Task<(bool, double)> DeletePersonAsync(string personId, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
-        var q = "g.V([pk, uid]).bothE().drop(); g.V([pk, uid]).drop()";
-        var rs = await _client.SubmitAsync<dynamic>(q, new() { ["uid"] = personId, ["pk"] = pk });
+        var q = @"
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId)).bothE().drop();
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId)).drop()
+";
+        var rs = await _client.SubmitAsync<dynamic>(q, new() { ["personId"] = personId });
         return (true, ReadRu(rs));
     }
 
@@ -141,16 +147,14 @@ g.V([pk, uid])
 
     public async Task<(bool, double)> FollowAsync(string followerId, string followeeId, CancellationToken ct = default)
     {
-        var fpk = _pkForId(followerId);
-        var tpk = _pkForId(followeeId);
-        var now = DateTimeOffset.UtcNow;
+        var nowIso = Iso(DateTimeOffset.UtcNow);
 
         var q = @"
-// ensure forward edge follower -> followee
-g.V([fpk,f]).as('f')
- .V([tpk,t]).as('t')
+// Resolve vertices via point-reads (pk == id)
+g.V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f')
+ .V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t')
  .coalesce(
-   select('t').inE('follows').where(outV().as('f')),
+   select('f').outE('follows').where(inV().as('t')).limit(1),
    addE('follows').from('f').to('t').property('createdAt', createdAt)
  )
 ";
@@ -158,30 +162,27 @@ g.V([fpk,f]).as('f')
         if (_maintainReverseEdge)
         {
             q += @"
-; g.V([tpk,t]).as('t2')
-   .V([fpk,f]).as('f2')
+; g.V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t2')
+   .V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f2')
    .coalesce(
-     select('f2').inE('followedBy').where(outV().as('t2')),
+     select('t2').outE('followedBy').where(inV().as('f2')).limit(1),
      addE('followedBy').from('t2').to('f2').property('createdAt', createdAt)
    )";
         }
 
         var rs = await _client.SubmitAsync<dynamic>(q, new() {
-            ["f"] = followerId, ["fpk"] = fpk,
-            ["t"] = followeeId, ["tpk"] = tpk,
-            ["createdAt"] = Iso(now)
+            ["followerId"] = followerId,
+            ["followeeId"] = followeeId,
+            ["createdAt"]  = nowIso
         });
         return (true, ReadRu(rs));
     }
 
     public async Task<(bool, double)> UnfollowAsync(string followerId, string followeeId, CancellationToken ct = default)
     {
-        var fpk = _pkForId(followerId);
-        var tpk = _pkForId(followeeId);
-
         var q = @"
-g.V([fpk,f]).as('f')
- .V([tpk,t]).as('t')
+g.V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f')
+ .V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t')
  .coalesce(
    select('f').outE('follows').where(inV().as('t')).limit(1).drop(),
    constant('ok')
@@ -191,28 +192,31 @@ g.V([fpk,f]).as('f')
         if (_maintainReverseEdge)
         {
             q += @"
-; g.V([tpk,t]).as('t2')
-   .V([fpk,f]).as('f2')
+; g.V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t2')
+   .V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f2')
    .coalesce(
      select('t2').outE('followedBy').where(inV().as('f2')).limit(1).drop(),
      constant('ok')
    )";
         }
 
-        var rs = await _client.SubmitAsync<dynamic>(q, new() { ["f"] = followerId, ["fpk"] = fpk, ["t"] = followeeId, ["tpk"] = tpk });
+        var rs = await _client.SubmitAsync<dynamic>(q, new() {
+            ["followerId"] = followerId,
+            ["followeeId"] = followeeId
+        });
         return (true, ReadRu(rs));
     }
 
     public async Task<(bool, double)> IsFollowingAsync(string followerId, string followeeId, CancellationToken ct = default)
     {
-        var fpk = _pkForId(followerId);
-
         var q = @"
-g.V([fpk,f]).out('follows')
- .where(id().is(t))
+g.V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId))
+ .out('follows').hasId(followeeId)
  .limit(1).count()
 ";
-        var rs = await _client.SubmitAsync<long>(q, new() { ["f"] = followerId, ["fpk"] = fpk, ["t"] = followeeId });
+        var rs = await _client.SubmitAsync<long>(q, new() {
+            ["followerId"] = followerId, ["followeeId"] = followeeId
+        });
         var exists = rs.FirstOrDefault() > 0;
         return (exists, ReadRu(rs));
     }
@@ -221,69 +225,70 @@ g.V([fpk,f]).out('follows')
 
     public async Task<(IReadOnlyList<Person>, double)> GetFollowingAsync(string personId, int skip = 0, int take = 50, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
+        var startIdx = Math.Max(0, skip);
+        var endIdx   = startIdx + take;
+
         var q = @"
-g.V([upk,u]).out('follows')
-  .range(skip, skip + take)
-  .project('id','displayName','email','createdAt','updatedAt')
-  .by(values('id'))
-  .by(values('displayName'))
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
+  .out('follows')
+  .range(startIdx, endIdx)
+  .project('id','personId','accountId','name','email','createdAt','updatedAt')
+  .by(id())
+  .by(values('personId'))
+  .by(coalesce(values('accountId'), constant('')))
+  .by(values('name'))
   .by(coalesce(values('email'), constant('')))
   .by(values('createdAt'))
   .by(values('updatedAt'))
 ";
         var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
-            ["u"] = personId, ["upk"] = pk, ["skip"] = Math.Max(0, skip), ["take"] = take
+            ["personId"] = personId, ["startIdx"] = startIdx, ["endIdx"] = endIdx
         });
         return (rs.Select(MapPerson).ToList(), ReadRu(rs));
     }
 
     public async Task<(IReadOnlyList<Person>, double)> GetFollowersAsync(string personId, int skip = 0, int take = 50, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
+        var startIdx = Math.Max(0, skip);
+        var endIdx   = startIdx + take;
+        var edgeTraversal = _maintainReverseEdge ? "out('followedBy')" : "in('follows')";
 
-        var q = _maintainReverseEdge ? @"
-g.V([upk,u]).out('followedBy')
-  .range(skip, skip + take)
-  .project('id','displayName','email','createdAt','updatedAt')
-  .by(values('id'))
-  .by(values('displayName'))
-  .by(coalesce(values('email'), constant('')))
-  .by(values('createdAt'))
-  .by(values('updatedAt'))
-"
-:
-@"
-g.V([upk,u]).in('follows')
-  .range(skip, skip + take)
-  .project('id','displayName','email','createdAt','updatedAt')
-  .by(values('id'))
-  .by(values('displayName'))
+        var q = $@"
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
+  .{edgeTraversal}
+  .range(startIdx, endIdx)
+  .project('id','personId','accountId','name','email','createdAt','updatedAt')
+  .by(id())
+  .by(values('personId'))
+  .by(coalesce(values('accountId'), constant('')))
+  .by(values('name'))
   .by(coalesce(values('email'), constant('')))
   .by(values('createdAt'))
   .by(values('updatedAt'))
 ";
-
         var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
-            ["u"] = personId, ["upk"] = pk, ["skip"] = Math.Max(0, skip), ["take"] = take
+            ["personId"] = personId, ["startIdx"] = startIdx, ["endIdx"] = endIdx
         });
         return (rs.Select(MapPerson).ToList(), ReadRu(rs));
     }
 
     public async Task<(long, double)> CountFollowingAsync(string personId, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
-        var rs = await _client.SubmitAsync<long>("g.V([upk,u]).out('follows').count()", new() { ["u"] = personId, ["upk"] = pk });
+        var q = @"
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
+ .out('follows').count()
+";
+        var rs = await _client.SubmitAsync<long>(q, new() { ["personId"] = personId });
         return (rs.FirstOrDefault(), ReadRu(rs));
     }
 
     public async Task<(long, double)> CountFollowersAsync(string personId, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
-        var q = _maintainReverseEdge
-            ? "g.V([upk,u]).out('followedBy').count()"
-            : "g.V([upk,u]).in('follows').count()";
-        var rs = await _client.SubmitAsync<long>(q, new() { ["u"] = personId, ["upk"] = pk });
+        var edge = _maintainReverseEdge ? "out('followedBy')" : "in('follows')";
+        var q = $@"
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId)).{edge}.count()
+";
+        var rs = await _client.SubmitAsync<long>(q, new() { ["personId"] = personId });
         return (rs.FirstOrDefault(), ReadRu(rs));
     }
 
@@ -291,34 +296,31 @@ g.V([upk,u]).in('follows')
 
     public async Task<(IReadOnlyList<(Person person, long mutuals)> suggestions, double ru)> SuggestToFollowAsync(string personId, int limit = 20, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
-
-        // Uses a point-read path when pk == id; otherwise falls back to a cross-partition by-id lookup.
         var q = @"
-g.V([upk,u])
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
   .out('follows').aggregate('mine')
   .out('follows')
-  .where(neq([upk,u]))         // not me
-  .where(without('mine'))      // not already following
-  .groupCount().by(id())       // candidate -> mutual count
+  .where(without('mine'))
+  .where(id().is(neq(personId)))
+  .groupCount()                 // group by vertex
   .order(local).by(values, decr)
   .limit(local, limit)
   .unfold()
   .project('person','score')
     .by(select(keys)
-        .coalesce(
-           unfold().V([it,it]),          // fast path if pk==id
-           V().has('id', select(keys))   // fallback if pk differs
-        )
-        .project('id','displayName','email','createdAt','updatedAt')
-        .by(values('id'))
-        .by(values('displayName'))
+        .project('id','personId','accountId','name','email','createdAt','updatedAt')
+        .by(id())
+        .by(values('personId'))
+        .by(coalesce(values('accountId'), constant('')))
+        .by(values('name'))
         .by(coalesce(values('email'), constant('')))
         .by(values('createdAt'))
         .by(values('updatedAt')))
     .by(select(values))
 ";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() { ["u"] = personId, ["upk"] = pk, ["limit"] = limit });
+        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
+            ["personId"] = personId, ["limit"] = limit
+        });
         var list = rs.Select(d =>
         {
             var uDict = (Dictionary<string, object>)d["person"];
@@ -331,22 +333,25 @@ g.V([upk,u])
 
     public async Task<(IReadOnlyList<Person>, double)> MutualFollowsAsync(string personIdA, string personIdB, int limit = 50, CancellationToken ct = default)
     {
-        var apk = _pkForId(personIdA);
-        var bpk = _pkForId(personIdB);
-
         var q = @"
-g.V([apk,a]).out('follows').aggregate('aF')
- .V([bpk,b]).out('follows')
+g.V([personIdA, personIdA]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personIdA))
+ .out('follows').aggregate('aF')
+ .V([personIdB, personIdB]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personIdB))
+ .out('follows')
  .where(within('aF'))
  .limit(limit)
- .project('id','displayName','email','createdAt','updatedAt')
- .by(values('id'))
- .by(values('displayName'))
+ .project('id','personId','accountId','name','email','createdAt','updatedAt')
+ .by(id())
+ .by(values('personId'))
+ .by(coalesce(values('accountId'), constant('')))
+ .by(values('name'))
  .by(coalesce(values('email'), constant('')))
  .by(values('createdAt'))
  .by(values('updatedAt'))
 ";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() { ["a"] = personIdA, ["apk"] = apk, ["b"] = personIdB, ["bpk"] = bpk, ["limit"] = limit });
+        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
+            ["personIdA"] = personIdA, ["personIdB"] = personIdB, ["limit"] = limit
+        });
         return (rs.Select(MapPerson).ToList(), ReadRu(rs));
     }
 
@@ -354,13 +359,13 @@ g.V([apk,a]).out('follows').aggregate('aF')
 
     public async Task<(IReadOnlyList<string>, double)> GetFolloweeIdsAsync(string personId, int max = 500, CancellationToken ct = default)
     {
-        var pk = _pkForId(personId);
         var q = @"
-g.V([upk,u]).out('follows')
+g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
+  .out('follows')
   .limit(max)
-  .values('id')
+  .id()
 ";
-        var rs = await _client.SubmitAsync<string>(q, new() { ["u"] = personId, ["upk"] = pk, ["max"] = max });
+        var rs = await _client.SubmitAsync<string>(q, new() { ["personId"] = personId, ["max"] = max });
         return (rs.ToList(), ReadRu(rs));
     }
 
@@ -368,20 +373,23 @@ g.V([upk,u]).out('follows')
 
     private static string Iso(DateTimeOffset dto) => dto.UtcDateTime.ToString("o");
 
-    private static Person MapPerson(Dictionary<string, object> d) => new(
-        Id: (string)d["id"],
-        DisplayName: (string)d["displayName"],
-        Email: d.TryGetValue("email", out var e) && e is string s && s.Length > 0 ? s : null, // "" -> null
-        CreatedAt: ToDto(d["createdAt"]),
-        UpdatedAt: ToDto(d["updatedAt"])
-    );
+    private static Person MapPerson(Dictionary<string, object> d) => new()
+    {
+        Id        = (string)d["id"],
+        PersonId  = d.TryGetValue("personId", out var pid) ? (string)pid : (string)d["id"],
+        AccountId = d.TryGetValue("accountId", out var aid) ? (string)aid : "",
+        Name      = (string)d["name"],
+        Email     = d.TryGetValue("email", out var e) && e is string s && s.Length > 0 ? s : null,
+        CreatedAt = ToDto(d["createdAt"]),
+        UpdatedAt = ToDto(d["updatedAt"])
+    };
 
     private static DateTimeOffset ToDto(object v) =>
         v switch
         {
             DateTimeOffset dto => dto,
             DateTime dt => new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Utc)),
-            string s => DateTimeOffset.Parse(s, null, System.Globalization.DateTimeStyles.AdjustToUniversal),
+            string s => DateTimeOffset.Parse(s, null, DateTimeStyles.AdjustToUniversal),
             _ => DateTimeOffset.UtcNow
         };
 
@@ -415,5 +423,4 @@ g.V([upk,u]).out('follows')
             ? fallback
             : 0d;
     }
-
 }

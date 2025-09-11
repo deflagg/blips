@@ -3,8 +3,11 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 
 // --- Axios client (mirrors blipPost style) ---
+// --- Axios client (mirrors blipPost style) ---
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || '').replace(/\/+$/, '')
+
 const http = axios.create({
-  baseURL: 'https://useradmin.blips.service', // your hostname
+  baseURL: API_BASE_URL || undefined, // falls back to relative requests if unset
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 })
 
@@ -23,29 +26,29 @@ const getErr = (err) =>
   err.message ||
   'Request failed'
 
-// Minimal API wrapper for Persons
+// Minimal API wrapper for Accounts
 const api = {
-  // NOTE: This assumes a GET /persons endpoint that returns an array of persons.
+  // NOTE: This assumes a GET /accounts endpoint that returns an array of accounts.
   // If you don't have it yet, see the note after the component.
   list: async (skip = 0, take = 100) => {
-    const res = await http.get('/persons', { params: { skip, take } })
+    const res = await http.get('/accounts', { params: { skip, take } })
     return { items: Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.items) ? res.data.items : []), ru: parseRu(res) }
   },
 
-  // POST /persons/ expects: { id, displayName, email }
+  // POST /accounts/ expects: { id, name, email }
   create: async ({ name, email }) => {
     const id =
       (globalThis.crypto?.randomUUID?.() ??
         `${Date.now()}-${Math.random().toString(16).slice(2)}`)
 
-    const payload = { id, displayName: name, email }
-    const res = await http.post('/persons/', payload)
+    const payload = { name: name, email: email }
+    const res = await http.post('/accounts/', payload)
     return { data: res.data, ru: parseRu(res) }
   },
 
-  // DELETE /persons/{id}
+  // DELETE /accounts/{id}
   remove: async (id) => {
-    const res = await http.delete(`/persons/${encodeURIComponent(id)}`)
+    const res = await http.delete(`/accounts/${encodeURIComponent(id)}`)
     return { ru: parseRu(res) }
   },
 }
@@ -153,10 +156,10 @@ export default function UsersPage() {
               <ul className="feed-list">
                 {users.map(u => (
                   <li key={u.id} className="feed-item">
-                    <div className="avatar" aria-hidden="true">{(u.displayName || u.name || '?').slice(0,2).toUpperCase()}</div>
+                    <div className="avatar" aria-hidden="true">{(u.Name || u.name || '?').slice(0,2).toUpperCase()}</div>
                     <div className="feed-content">
                       <div className="feed-meta">
-                        <span className="feed-user">{u.displayName || u.name || '(no name)'}</span>
+                        <span className="feed-user">{u.Name || u.name || '(no name)'}</span>
                         <span className="dot">•</span>
                         <span className="muted">{u.email}</span>
                         <span className="chip">#{u.id}</span>

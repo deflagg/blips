@@ -1,12 +1,31 @@
+using System.Text.Json.Serialization;
+
 namespace UserAdmin.Models;
 
-public sealed record Person(
-    string Id,
-    string DisplayName,
-    string? Email,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
-);
+public sealed class Person
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = default!;
 
-public readonly record struct Suggestion(Person Person, long Mutuals);
-public readonly record struct WithRu<T>(T Value, double Ru);
+    [JsonPropertyName("personId")]
+    public string PersonId { get; set; } = default!;
+
+    [JsonPropertyName("accountId")]
+    public string AccountId { get; set; } = default!;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = default!;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = default!;
+
+
+    [JsonPropertyName("createdAt")]
+    public DateTimeOffset CreatedAt { get; set; }
+
+    [JsonPropertyName("updatedAt")]
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+public readonly record struct Suggestion(Person person, long mutuals);
+public readonly record struct WithRu<T>(T value, double ru);

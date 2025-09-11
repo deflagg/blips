@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Azure.Identity;
 using Gremlin.Net.Driver;
 using Azure.ResourceManager.CosmosDB;
+using Gremlin.Net.Structure.IO.GraphSON;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,7 +38,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 
     // Allow quick override to force IPv4 if needed (helps on some stacks)
     var endpoint = opt.Endpoint;
-    //var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
+    
 
     var clientOptions = new CosmosClientOptions
     {
@@ -70,9 +71,10 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
                 Timeout = TimeSpan.FromSeconds(65)
             };
         };
-    }
 
-    //return new CosmosClient(endpoint, key, clientOptions);
+        return new CosmosClient(endpoint, opt.Key, clientOptions);
+    }
+    
     return new CosmosClient(endpoint, new DefaultAzureCredential(), clientOptions);
 });
 
@@ -81,29 +83,44 @@ builder.Services.Configure<GremlinOptions>(builder.Configuration.GetSection("Per
 
 builder.Services.AddSingleton<GremlinClient>(sp =>
 {
-    var o = sp.GetRequiredService<IOptions<GremlinOptions>>().Value;
+    var s = sp.GetRequiredService<IOptions<GremlinOptions>>().Value;
+    var username = $"/dbs/{s.Common.DatabaseId}/colls/{s.Common.GraphId}";
 
-    // Managed Identity / Service Principal via DefaultAzureCredential
-    var cred = new Azure.Identity.DefaultAzureCredential();
+    if (s.Mode == GremlinMode.Emulator)
+    {
+        var emu = s.Emulator!;
+        var server = new GremlinServer(
+            hostname: emu.Host,
+            port: emu.Port,
+            enableSsl: false,
+            username: username,
+            password: emu.AuthKey
+        );
+        return new GremlinClient(server, new GraphSON2MessageSerializer());
+    }
+    else
+    {
+        var o = sp.GetRequiredService<IOptions<GremlinOptions>>().Value;
 
-    // 1) Get an AAD access token for Cosmos DB data plane
-    var token = cred.GetToken(
-        new Azure.Core.TokenRequestContext(new[] { "https://cosmos.azure.com/.default" })
-    ).Token;
+        // Managed Identity / Service Principal via DefaultAzureCredential
+        var cred = new Azure.Identity.DefaultAzureCredential();
 
-    // 2) Connect with SASL PLAIN: username = resource path, password = AAD token
-    var server = new Gremlin.Net.Driver.GremlinServer(
-        $"{o.AccountName}.gremlin.cosmos.azure.com",
-        443,
-        enableSsl: true,
-        username: $"/dbs/{o.DatabaseId}/colls/{o.GraphId}",
-        password: token
-    );
+        // 1) Get an AAD access token for Cosmos DB data plane
+        var token = cred.GetToken(
+            new Azure.Core.TokenRequestContext(new[] { "https://cosmos.azure.com/.default" })
+        ).Token;
 
-    return new Gremlin.Net.Driver.GremlinClient(
-        server,
-        new Gremlin.Net.Structure.IO.GraphSON.GraphSON2MessageSerializer()
-    );
+        // 2) Connect with SASL PLAIN: username = resource path, password = AAD token
+        var server = new Gremlin.Net.Driver.GremlinServer(
+            $"{o.Cloud!.AccountName}.gremlin.cosmos.azure.com",
+            443,
+            enableSsl: true,
+            username: $"/dbs/{o.Common.DatabaseId}/colls/{o.Common.GraphId}",
+            password: token
+        );
+
+        return new GremlinClient(server, new GraphSON2MessageSerializer());
+    }
 });
 
 
@@ -133,7 +150,7 @@ builder.Services.AddSingleton<IPersonRepository>(sp =>
     new PersonRepository(
         sp.GetRequiredService<GremlinClient>(),
         maintainReverseEdge: true,
-        partitionKeyPropertyName: "PersonId"   // matches Person model property name
+        partitionKeyPropertyName: "personId"   // matches Person model property name
     )
 );
 
@@ -143,13 +160,10 @@ app.Logger.LogInformation("ENV={Env}", app.Environment.EnvironmentName);
 
 app.UseCors("AllowAll");
 
-// Create DB/container automatically in Development
-if (app.Environment.IsDevelopment())
-{
-    await app.Services.GetRequiredService<ICosmosInitializer>().InitializeAsync();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+await app.Services.GetRequiredService<ICosmosInitializer>().InitializeAsync();
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
@@ -163,39 +177,36 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 
 
 // ---------- Users endpoints ----------
-var persons = app.MapGroup("/persons").WithTags("Persons");
+var accounts = app.MapGroup("/accounts").WithTags("Accounts");
 
 // tiny helper to surface RU like your Core API endpoints do
 static void SetRu(HttpResponse res, double ru) =>
     res.Headers["x-ms-request-charge"] = ru.ToString("0.###", CultureInfo.InvariantCulture);
 
 // Create (or upsert) a user
-persons.MapPost("/", async (
+accounts.MapPost("/", async (
     IAccountsRepository accounts,
     IPersonRepository persons,
     HttpContext http,
-    PersonCreateDto dto) =>
+    AccountCreateDto dto) =>
 {
     var now = DateTimeOffset.UtcNow;
     double ru = 0d;
 
     // Optional: short-circuit if the account already exists (treat as conflict)
-    var existing = await accounts.GetAsync(dto.Id, http.RequestAborted);
-    if (existing is not null)
-    {
-        ru += existing.Value.RU;
-        SetRu(http.Response, ru);
-        return Results.Conflict(new { error = "Account already exists." });
-    }
+    // create id and accountid
+    var id = Guid.NewGuid().ToString();
+    var accountId = Guid.NewGuid().ToString();
 
     // 1) Create the Account (source of record)
     var account = new Account
     {
-        id = dto.Id,
-        // If your Account model has different names, map accordingly:
-        name = dto.DisplayName,
-        createdAt = now,
-        updatedAt = now
+        Id = id,
+        AccountId = accountId,
+        Name = dto.Name,
+        Email = dto.Email,
+        CreatedAt = now,
+        UpdatedAt = now
     };
 
     (Account createdAcc, string accEtag, double ruAcc) =
@@ -205,45 +216,69 @@ persons.MapPost("/", async (
     try
     {
         // 2) Create/Upsert the Person mirror
-        var person = new Person(dto.Id, dto.DisplayName, dto.Email, now, now);
+        var personId = Guid.NewGuid().ToString();
+        
+        var person = new Person
+        {
+            Id = id, 
+            AccountId = accountId,
+            PersonId = personId,
+            Name = dto.Name,
+            Email = dto.Email,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
         (Person createdPerson, double ruPerson) =
             await persons.UpsertPersonAsync(person, http.RequestAborted);
         ru += ruPerson;
 
         SetRu(http.Response, ru);
-        return Results.Created($"/users/{createdAcc.id}", new
+        return Results.Created($"/users/{createdAcc.AccountId}", new
         {
             account = createdAcc,
             person = createdPerson
         });
     }
-    catch (Exception)
+    catch (Exception ex)
     {
         // Compensate: remove the account we just created to avoid drift
-        var (deleted, ruDel) = await accounts.DeleteAsync(account.id, accEtag, http.RequestAborted);
+        var (deleted, ruDel) = await accounts.DeleteAsync(account.Id, account.AccountId, accEtag, http.RequestAborted);
         ru += ruDel;
 
         SetRu(http.Response, ru);
         return Results.Problem(
-            detail: "Account was created but mirroring to Person failed. The account has been rolled back.",
+            detail: ex.Message,
             statusCode: StatusCodes.Status500InternalServerError);
     }
 });
 
 // Update a person (idempotent upsert)
-persons.MapPut("/{id}", async (IPersonRepository repo, HttpContext http, string id, PersonUpdateDto dto) =>
+accounts.MapPut("/{id}", async (IPersonRepository repo, HttpContext http, string personId, string id, AccountUpdateDto dto) =>
 {
     var now = DateTimeOffset.UtcNow;
 
     (Person? existing, double ru0) = await repo.GetPersonAsync(id, http.RequestAborted);
 
     var user = existing is null
-        ? new Person(id, dto.DisplayName, dto.Email, now, now)
-        : new Person(id,
-                   dto.DisplayName ?? existing.DisplayName,
-                   dto.Email,
-                   existing.CreatedAt,
-                   now);
+        ? new Person {
+            Id = id,
+            AccountId = dto.AccountId,
+            PersonId = personId,
+            Name = dto.Name,
+            Email = dto.Email,
+            CreatedAt = now,
+            UpdatedAt = now
+        }
+        : new Person {
+            Id = id,
+            AccountId = dto.AccountId,
+            PersonId = personId,
+            Name = dto.Name ?? existing.Name,
+            Email = dto.Email,
+            CreatedAt = existing.CreatedAt,
+            UpdatedAt = now
+        };
 
     (Person updated, double ru1) = await repo.UpsertPersonAsync(user, http.RequestAborted);
     SetRu(http.Response, ru0 + ru1);
@@ -251,7 +286,7 @@ persons.MapPut("/{id}", async (IPersonRepository repo, HttpContext http, string 
 });
 
 // Get person by id
-persons.MapGet("/{id}", async (IPersonRepository repo, HttpContext http, string id) =>
+accounts.MapGet("/{id}", async (IPersonRepository repo, HttpContext http, string id) =>
 {
     (Person? user, double ru) = await repo.GetPersonAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
@@ -259,7 +294,7 @@ persons.MapGet("/{id}", async (IPersonRepository repo, HttpContext http, string 
 });
 
 // Delete person
-persons.MapDelete("/{id}", async (IPersonRepository repo, HttpContext http, string id) =>
+accounts.MapDelete("/{id}", async (IPersonRepository repo, HttpContext http, string id) =>
 {
     (bool deleted, double ru) = await repo.DeletePersonAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
@@ -269,7 +304,7 @@ persons.MapDelete("/{id}", async (IPersonRepository repo, HttpContext http, stri
 // ----- Follow mechanics -----
 
 // Follow
-persons.MapPost("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
+accounts.MapPost("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
 {
     if (string.Equals(id, targetId, StringComparison.Ordinal))
         return Results.BadRequest(new { error = "Person cannot follow themself." });
@@ -280,7 +315,7 @@ persons.MapPost("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpCo
 });
 
 // Unfollow
-persons.MapDelete("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
+accounts.MapDelete("/{id}/follow/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
 {
     (bool ok, double ru) = await repo.UnfollowAsync(id, targetId, http.RequestAborted);
     SetRu(http.Response, ru);
@@ -288,7 +323,7 @@ persons.MapDelete("/{id}/follow/{targetId}", async (IPersonRepository repo, Http
 });
 
 // Is following?
-persons.MapGet("/{id}/following/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
+accounts.MapGet("/{id}/following/{targetId}", async (IPersonRepository repo, HttpContext http, string id, string targetId) =>
 {
     (bool following, double ru) = await repo.IsFollowingAsync(id, targetId, http.RequestAborted);
     SetRu(http.Response, ru);
@@ -298,7 +333,7 @@ persons.MapGet("/{id}/following/{targetId}", async (IPersonRepository repo, Http
 // ----- Lists & counts -----
 
 // Following list
-persons.MapGet("/{id}/following", async (IPersonRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
+accounts.MapGet("/{id}/following", async (IPersonRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
 {
     (IReadOnlyList<Person> list, double ru) =
         await repo.GetFollowingAsync(id, Math.Max(0, skip), Math.Clamp(take, 1, 200), http.RequestAborted);
@@ -307,7 +342,7 @@ persons.MapGet("/{id}/following", async (IPersonRepository repo, HttpContext htt
 });
 
 // Followers list
-persons.MapGet("/{id}/followers", async (IPersonRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
+accounts.MapGet("/{id}/followers", async (IPersonRepository repo, HttpContext http, string id, int skip = 0, int take = 50) =>
 {
     (IReadOnlyList<Person> list, double ru) =
         await repo.GetFollowersAsync(id, Math.Max(0, skip), Math.Clamp(take, 1, 200), http.RequestAborted);
@@ -316,7 +351,7 @@ persons.MapGet("/{id}/followers", async (IPersonRepository repo, HttpContext htt
 });
 
 // Following count
-persons.MapGet("/{id}/following/count", async (IPersonRepository repo, HttpContext http, string id) =>
+accounts.MapGet("/{id}/following/count", async (IPersonRepository repo, HttpContext http, string id) =>
 {
     (long count, double ru) = await repo.CountFollowingAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
@@ -324,7 +359,7 @@ persons.MapGet("/{id}/following/count", async (IPersonRepository repo, HttpConte
 });
 
 // Followers count
-persons.MapGet("/{id}/followers/count", async (IPersonRepository repo, HttpContext http, string id) =>
+accounts.MapGet("/{id}/followers/count", async (IPersonRepository repo, HttpContext http, string id) =>
 {
     (long count, double ru) = await repo.CountFollowersAsync(id, http.RequestAborted);
     SetRu(http.Response, ru);
@@ -332,7 +367,7 @@ persons.MapGet("/{id}/followers/count", async (IPersonRepository repo, HttpConte
 });
 
 // Suggestions (people you may know)
-persons.MapGet("/{id}/suggestions", async (IPersonRepository repo, HttpContext http, string id, int limit = 20) =>
+accounts.MapGet("/{id}/suggestions", async (IPersonRepository repo, HttpContext http, string id, int limit = 20) =>
 {
     (IReadOnlyList<(Person user, long mutuals)> suggestions, double ru) =
         await repo.SuggestToFollowAsync(id, Math.Clamp(limit, 1, 100), http.RequestAborted);
@@ -344,7 +379,7 @@ persons.MapGet("/{id}/suggestions", async (IPersonRepository repo, HttpContext h
 });
 
 // Mutual followees between two users (who both A and B follow)
-persons.MapGet("/{id}/mutuals/{otherId}", async (IPersonRepository repo, HttpContext http, string id, string otherId, int limit = 50) =>
+accounts.MapGet("/{id}/mutuals/{otherId}", async (IPersonRepository repo, HttpContext http, string id, string otherId, int limit = 50) =>
 {
     (IReadOnlyList<Person> list, double ru) =
         await repo.MutualFollowsAsync(id, otherId, Math.Clamp(limit, 1, 200), http.RequestAborted);
@@ -353,7 +388,7 @@ persons.MapGet("/{id}/mutuals/{otherId}", async (IPersonRepository repo, HttpCon
 });
 
 // Utility: followee ids (to join with your Blips repo for timelines)
-persons.MapGet("/{id}/followee-ids", async (IPersonRepository repo, HttpContext http, string id, int max = 500) =>
+accounts.MapGet("/{id}/followee-ids", async (IPersonRepository repo, HttpContext http, string id, int max = 500) =>
 {
     (IReadOnlyList<string> ids, double ru) =
         await repo.GetFolloweeIdsAsync(id, Math.Clamp(max, 1, 2000), http.RequestAborted);

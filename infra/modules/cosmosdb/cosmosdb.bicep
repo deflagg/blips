@@ -35,7 +35,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
       {
         locationName: location          // primary write region
         failoverPriority: 0
-        isZoneRedundant: false
+        isZoneRedundant: false  
       }
     ]
   }

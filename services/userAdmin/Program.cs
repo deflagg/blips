@@ -298,13 +298,14 @@ accounts.MapDelete("/{id}", async (IPersonRepository repo, HttpContext http, str
 
 
 // Seed Data
+// Seed Data
 app.MapGet("/initializeData", async (
     IAccountsRepository accountsRepo,
     IPersonRepository personsRepo,
     HttpContext http,
-    int users = 10,             // how many to create (<= usernames count)
+    int users = 10,              // how many to create (<= usernames count)
     int? seed = null,            // RNG seed for reproducibility
-    double avgFollows = 1,      // target average out-degree
+    double avgFollows = 1,       // target average out-degree
     double homophilyBoost = 1.8, // multiplier if interests overlap
     double influencerBoost = 4.0,// multiplier for influencers being chosen
     double triadicProb = 0.12,   // probability to add triadic-closure edges
@@ -312,6 +313,12 @@ app.MapGet("/initializeData", async (
     double noiseFollowProb = 0.02,// small chance to follow a random user
     CancellationToken ct = default) =>
 {
+    // -----------------------------
+    // 0) Setup
+    // -----------------------------
+    double totalRu = 0d;
+    var now = DateTimeOffset.UtcNow;
+
     // -----------------------------
     // 1) Seed users with attributes
     // -----------------------------
@@ -332,38 +339,58 @@ app.MapGet("/initializeData", async (
     users = Math.Clamp(users, 2, usernames.Length);
     var rng = seed.HasValue ? new Random(seed.Value) : new Random();
 
-    // Some broad interest buckets for homophily
+    // interest buckets for homophily
     var interests = new[]
     {
         "tech","sports","music","movies","gaming","art","science","finance","health","travel",
         "food","nature","politics","crypto","fashion","photography"
     };
 
-    // Light influencer/bot priors
-    double influencerRate = 0.005; // ~1% influencers
-    double botRate = 0.00; // ~8% bots
+    // influencer/bot priors
+    double influencerRate = 0.005;
+    double botRate = 0.00;
 
     var chosen = usernames.Take(users).ToArray();
 
+    // Create BOTH: Account (Cosmos container) + Person (Gremlin vertex)
     var createdPersons = new List<Person>(users);
     foreach (var u in chosen)
     {
+        var email = $"{u}@example.com";
+
+        // --- Create Account in the Account container
+        var account = new Account
+        {
+            Id        = Guid.NewGuid().ToString(),
+            AccountId = Guid.NewGuid().ToString(),
+            Name      = u,
+            Email     = email,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        var (createdAcc, _etag, ruAcc) = await accountsRepo.CreateAsync(account, ct); // Account container write
+        totalRu += ruAcc; // accumulate RU from the Account write
+
+        // --- Mirror Person in the graph, linking to AccountId
+        // NOTE: do NOT set person.Id here; PersonRepository will use PersonId as the vertex id,
+        // which keeps node ids consistent with your /graph endpoint.
         var person = new Person
         {
-            PersonId = u,
-            AccountId = u,
-            Name = u,
-            Email = $"{u}@example.com"
+            PersonId  = u,                     // vertex id will become this value
+            AccountId = createdAcc.AccountId,  // link to the Account we just created
+            Name      = u,
+            Email     = email,
+            CreatedAt = now,
+            UpdatedAt = now
         };
-        var (upserted, _) = await personsRepo.UpsertPersonAsync(person, ct);
+
+        var (upserted, ruPerson) = await personsRepo.UpsertPersonAsync(person, ct);
+        totalRu += ruPerson; // accumulate RU from the Person upsert
         createdPersons.Add(upserted);
     }
 
     // Build indices and per-user metadata
-    var indexOf = createdPersons
-        .Select((p, i) => (p.PersonId, i))
-        .ToDictionary(t => t.PersonId, t => t.i);
-
     var n = createdPersons.Count;
     var meta = new UserMeta[n];
     for (int i = 0; i < n; i++)
@@ -381,18 +408,15 @@ app.MapGet("/initializeData", async (
     }
 
     // -----------------------------------------------
-    // 2) Generate realistic follow edges (the fun part)
+    // 2) Generate realistic follow edges (same as before)
     // -----------------------------------------------
-    // We keep a local adjacency for uniqueness & weighting
     var outAdj = new HashSet<int>[n];
-    var inDeg = new int[n]; // in-degree drives "popularity"
+    var inDeg  = new int[n];
     for (int i = 0; i < n; i++) outAdj[i] = new HashSet<int>();
 
-    // Heavy-tailed out-degree using log-normal around avgFollows
     int MaxOutPerUser() => Math.Min(n - 1, Math.Max(1, (int)Math.Round(avgFollows * 3.5)));
     int SampleOut()
     {
-        // Log-normal with sigma=1.0, mean approx avgFollows
         double sigma = 1.0;
         double mu = Math.Log(Math.Max(1.0, avgFollows)) - 0.5 * sigma * sigma;
         double u1 = 1.0 - rng.NextDouble();
@@ -406,31 +430,17 @@ app.MapGet("/initializeData", async (
     double WeightForTarget(int src, int dst)
     {
         if (src == dst) return 0;
-        // Popularity via in-degree (preferential attachment) + 1 for nonzero base
         double w = 1.0 + inDeg[dst];
-
-        // Homophily: bump if shared interests
-        if (meta[src].Interests.Overlaps(meta[dst].Interests))
-            w *= homophilyBoost;
-
-        // Influencers are attractive to follow
-        if (meta[dst].IsInfluencer)
-            w *= influencerBoost;
-
-        // Bots are less attractive to follow
-        if (meta[dst].IsBot)
-            w *= 0.7;
-
+        if (meta[src].Interests.Overlaps(meta[dst].Interests)) w *= homophilyBoost;
+        if (meta[dst].IsInfluencer) w *= influencerBoost;
+        if (meta[dst].IsBot) w *= 0.7;
         return w;
     }
 
     bool TryPickTarget(int src, out int picked, HashSet<int>? banned = null)
     {
-        // Build a one-pass weighted sampler across all candidates
         double total = 0;
         picked = -1;
-        double r = rng.NextDouble();
-
         for (int j = 0; j < n; j++)
         {
             if (j == src) continue;
@@ -441,24 +451,19 @@ app.MapGet("/initializeData", async (
             if (w <= 0) continue;
 
             total += w;
-            // Reservoir-like weighted pick
-            if (rng.NextDouble() < w / total)
-                picked = j;
+            if (rng.NextDouble() < w / total) picked = j;
         }
-
         return picked >= 0;
     }
 
-    // Initial follows per user
     var newEdges = new List<(int u, int v)>(n * 8);
 
     for (int u = 0; u < n; u++)
     {
         int desired = SampleOut();
-        int guard = 0, maxGuard = desired * 8 + 64; // avoid infinite loops
+        int guard = 0, maxGuard = desired * 8 + 64;
         while (outAdj[u].Count < desired && guard++ < maxGuard)
         {
-            // Mostly weighted picks, with small chance of pure random noise
             int v;
             if (rng.NextDouble() < noiseFollowProb)
             {
@@ -476,11 +481,9 @@ app.MapGet("/initializeData", async (
         }
     }
 
-    // Triadic closure: follow friends-of-friends
     int triadicAdded = 0;
     for (int u = 0; u < n; u++)
     {
-        // Collect candidates two steps away
         var fofs = new HashSet<int>();
         foreach (var v in outAdj[u])
             foreach (var w in outAdj[v])
@@ -490,9 +493,7 @@ app.MapGet("/initializeData", async (
         foreach (var w in fofs)
         {
             if (rng.NextDouble() > triadicProb) continue;
-            // optionally prefer weighted triadic picks (ban none, but keep a one-off pick probability)
             if (outAdj[u].Contains(w)) continue;
-
             outAdj[u].Add(w);
             inDeg[w]++;
             newEdges.Add((u, w));
@@ -500,15 +501,13 @@ app.MapGet("/initializeData", async (
         }
     }
 
-    // Reciprocity: some edges get followed back (lower for influencers)
     int reciprocalAdded = 0;
     foreach (var (u, v) in newEdges.ToArray())
     {
         if (outAdj[v].Contains(u)) continue;
         double p = reciprocityProb;
-        if (meta[u].IsInfluencer) p *= 0.6; // influencers less likely to follow back
+        if (meta[u].IsInfluencer) p *= 0.6;
         if (meta[v].IsInfluencer) p *= 0.6;
-
         if (rng.NextDouble() < p)
         {
             outAdj[v].Add(u);
@@ -519,19 +518,18 @@ app.MapGet("/initializeData", async (
     }
 
     // --------------------------------
-    // 3) Persist follows via repository
+    // 3) Persist follows via repository (+ RU)
     // --------------------------------
     var ids = createdPersons.Select(p => p.PersonId).ToArray();
-
     foreach (var (u, v) in newEdges)
     {
-        await personsRepo.FollowAsync(ids[u], ids[v], ct);
+        var (_, ru) = await personsRepo.FollowAsync(ids[u], ids[v], ct);
+        totalRu += ru;
     }
 
     // ---------------
-    // 4) Basic metrics
+    // 4) Basic metrics + RU header
     // ---------------
-    // Edge set for reciprocity measurement
     var edgeSet = new HashSet<long>(newEdges.Count);
     static long Key(int a, int b) => ((long)a << 32) | (uint)b;
     foreach (var (u, v) in newEdges) edgeSet.Add(Key(u, v));
@@ -541,17 +539,14 @@ app.MapGet("/initializeData", async (
     foreach (var (u, v) in newEdges)
         if (edgeSet.Contains(Key(v, u))) mutual++;
 
-    // Each mutual pair counted twice above; normalize
     double reciprocityRate = (mutual / 2.0) / E;
 
-    // Top hubs by followers
     var topHubs = Enumerable.Range(0, n)
         .OrderByDescending(i => inDeg[i])
         .Take(Math.Min(10, n))
-        .Select(i => new { user = ids[i], followers = inDeg[i], influencer = meta[i].IsInfluencer })
+        .Select(i => new { user = ids[i], followers = inDeg[i], /* influencer = meta[i].IsInfluencer */ })
         .ToArray();
 
-    // Gini coefficient over follower counts (0 = equal, 1 = extremely unequal)
     double Gini(int[] arr)
     {
         if (arr.Length == 0) return 0;
@@ -562,8 +557,6 @@ app.MapGet("/initializeData", async (
             cum += sorted[i];
             g += cum - sorted[i] / 2.0;
         }
-        // Lorenz-based formula
-        // G = 1 - 2 * (area under Lorenz curve)
         double lorenz = g / (sorted.Length * sum);
         return Math.Round(1 - 2 * lorenz, 4);
     }
@@ -571,41 +564,88 @@ app.MapGet("/initializeData", async (
     var stats = new
     {
         users = n,
+        accountsCreated = n,
         edges = E,
         avgOut = Math.Round(E / (double)n, 2),
-        avgIn = Math.Round(E / (double)n, 2),
+        avgIn  = Math.Round(E / (double)n, 2),
         triadicAdded,
         reciprocalAdded,
         reciprocity = Math.Round(reciprocityRate, 3),
         giniFollowers = Gini(inDeg),
-        influencers = Enumerable.Range(0, n).Where(i => meta[i].IsInfluencer)
-            .Select(i => ids[i]).Take(12).ToArray(),
-        bots = Enumerable.Range(0, n).Where(i => meta[i].IsBot)
-            .Select(i => ids[i]).Take(12).ToArray(),
         topHubs
     };
 
+    SetRu(http.Response, totalRu); // <= Include all RU in the response header
+
     return Results.Ok(new
     {
-        message = $"Initialized {n} persons and {E} follow edges (incl. triadic + reciprocity).",
+        message = $"Initialized {n} accounts, {n} persons and {E} follow edges (incl. triadic + reciprocity).",
         stats
     });
 })
 .WithTags("Init");
 
+
 // ----- Graph Admin -----
+// ----- Graph Admin -----
+// Replaces your existing /DeleteGraph route
 app.MapDelete("/DeleteGraph", async (
     IAccountsRepository accountsRepo,
     IPersonRepository personsRepo,
     HttpContext http,
+    int pageSize = 200,                 // tune page size if needed
     CancellationToken ct = default) =>
 {
-    var ru = await personsRepo.DeleteGraphAsync(http.RequestAborted);
-    SetRu(http.Response, ru);
-    return Results.Ok(new { deleted = "all", ru });
+    double totalRu = 0d;
 
+    // 1) Nuke the graph (vertices + incident edges)
+    // If your repo exposes NukeGraphAsync instead, swap the call accordingly.
+    var graphRu = await personsRepo.DeleteGraphAsync(ct);
+    totalRu += graphRu;
+
+    // 2) Delete all Account docs (cross-partition)
+    long deletedAccounts = 0;
+    double accountsRu = 0d;
+    string? continuation = null;
+
+    do
+    {
+        var (items, next, ruList) = await accountsRepo.ListAsync(pageSize, continuation, ct);
+        accountsRu += ruList;
+
+        if (items.Count == 0)
+        {
+            continuation = next;
+            continue;
+        }
+
+        foreach (var a in items)
+        {
+            // No ETag precondition for bulk wipe; pass null
+            var (deleted, ruDel) = await accountsRepo.DeleteAsync(a.Id, a.AccountId, null, ct);
+            accountsRu += ruDel;
+            if (deleted) deletedAccounts++;
+        }
+
+        continuation = next;
+    }
+    while (!string.IsNullOrEmpty(continuation));
+
+    totalRu += accountsRu;
+
+    // RU header for the whole operation
+    SetRu(http.Response, totalRu);
+
+    return Results.Ok(new
+    {
+        deleted = "graph+accounts",
+        graph = new { ru = graphRu },
+        accounts = new { deleted = deletedAccounts, ru = accountsRu },
+        ru = totalRu
+    });
 })
 .WithTags("Graph");
+
 
 
 // ----- Graph -----

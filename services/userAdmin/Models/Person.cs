@@ -27,5 +27,12 @@ public sealed class Person
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+sealed class UserMeta
+{
+    public bool IsInfluencer { get; set; }
+    public bool IsBot { get; set; }
+    public HashSet<string> Interests { get; set; } = new();
+}
+
 public readonly record struct Suggestion(Person person, long mutuals);
 public readonly record struct WithRu<T>(T value, double ru);

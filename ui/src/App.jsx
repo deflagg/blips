@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import BlipFeed from './components/blipFeed'
 import BlipPost from './components/blipPost'
 import UsersPage from './components/UsersPage'
+import GraphPage from './components/GraphPage'
 
 function HomeScreen({ onPosted, feedVersion }) {
   return (
@@ -48,7 +49,7 @@ export default function App() {
             <nav className="nav">
               <NavLink className="nav-link" to="/">Home</NavLink>
               <NavLink className="nav-link" to="/users">Users</NavLink>
-              {/* keep other links as needed */}
+              <NavLink className="nav-link" to="/graph">Graph</NavLink>
             </nav>
           </div>
         </header>
@@ -57,6 +58,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomeScreen onPosted={handlePosted} feedVersion={feedVersion} />} />
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/graph" element={<GraphPage />} />
           </Routes>
         </main>
 

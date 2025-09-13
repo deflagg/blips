@@ -1,7 +1,10 @@
 using Gremlin.Net.Driver;
+using Gremlin.Net.Driver.Messages;
+
 using System.Globalization;
 using System.Text.Json;
 using UserAdmin.Models;
+
 
 namespace UserAdmin.Infrastructure;
 
@@ -9,418 +12,280 @@ public interface IPersonRepository
 {
     // Users
     Task<(Person person, double ru)> UpsertPersonAsync(Person person, CancellationToken ct = default);
+    Task<(IReadOnlyList<Person> persons, IReadOnlyList<(string source, string target, DateTimeOffset createdAt)> edges, double ru)> GetGraphAsync(int vertexLimit = 2000, int edgeLimit = 10000, CancellationToken ct = default);
     Task<(Person? person, double ru)> GetPersonAsync(string personId, CancellationToken ct = default);
     Task<(bool deleted, double ru)> DeletePersonAsync(string personId, CancellationToken ct = default);
 
-    // Relationships
+    Task<double> DeleteGraphAsync(CancellationToken ct = default);
     Task<(bool created, double ru)> FollowAsync(string followerId, string followeeId, CancellationToken ct = default);
-    Task<(bool removed, double ru)> UnfollowAsync(string followerId, string followeeId, CancellationToken ct = default);
-    Task<(bool following, double ru)> IsFollowingAsync(string followerId, string followeeId, CancellationToken ct = default);
-
-    // Lists & counts
-    Task<(IReadOnlyList<Person> persons, double ru)> GetFollowingAsync(string personId, int skip = 0, int take = 50, CancellationToken ct = default);
-    Task<(IReadOnlyList<Person> persons, double ru)> GetFollowersAsync(string personId, int skip = 0, int take = 50, CancellationToken ct = default);
-    Task<(long count, double ru)> CountFollowingAsync(string personId, CancellationToken ct = default);
-    Task<(long count, double ru)> CountFollowersAsync(string personId, CancellationToken ct = default);
-
-    // Suggestions & mutuals
-    Task<(IReadOnlyList<(Person person, long mutuals)> suggestions, double ru)> SuggestToFollowAsync(string personId, int limit = 20, CancellationToken ct = default);
-    Task<(IReadOnlyList<Person> persons, double ru)> MutualFollowsAsync(string personIdA, string personIdB, int limit = 50, CancellationToken ct = default);
-
-    // Utilities
-    Task<(IReadOnlyList<string> followeeIds, double ru)> GetFolloweeIdsAsync(string personId, int max = 500, CancellationToken ct = default);
 }
 
 public sealed class PersonRepository : IPersonRepository
 {
     private readonly GremlinClient _client;
 
-    // Always "personId" for PersonGraphDB
-    private readonly string _pkName;
-
-    // Map from vertex id -> partition key value. For this DB, pk == id.
-    private readonly Func<string, string> _pkForId;
-
-    // Whether to maintain reverse edges for fast followers queries
-    private readonly bool _maintainReverseEdge;
-
-    public PersonRepository(
-        GremlinClient client,
-        string partitionKeyPropertyName = "personId",
-        Func<string, string>? pkForId = null,
-        bool maintainReverseEdge = true)
+    public PersonRepository(GremlinClient client)
     {
         _client = client;
-        _pkName = partitionKeyPropertyName;          // should remain "personId"
-        _pkForId = pkForId ?? (id => id);            // pk == id in this graph
-        _maintainReverseEdge = maintainReverseEdge;
     }
 
-    // ---------------- Users ----------------
-
-    public async Task<(Person, double)> UpsertPersonAsync(Person p, CancellationToken ct = default)
+    public async Task<(Person person, double ru)> UpsertPersonAsync(Person person, CancellationToken ct = default)
     {
-        if (p is null) throw new ArgumentNullException(nameof(p));
-        var personId = p.PersonId ?? throw new ArgumentNullException(nameof(p.PersonId));
+        var now = (person.UpdatedAt == default ? DateTimeOffset.UtcNow : person.UpdatedAt);
+        var createdAt = person.CreatedAt == default ? now : person.CreatedAt;
+        var id = string.IsNullOrWhiteSpace(person.Id) ? (person.PersonId ?? Guid.NewGuid().ToString("n")) : person.Id;
 
-        // PK == ID for PersonGraphDB
-        var partitionKey = personId;
-
-        // Server-managed timestamps
-        var nowIso = Iso(DateTimeOffset.UtcNow);
-
-        // CREATE: set PK exactly once (personId). UPDATE: never touch PK.
-        var q = $@"
-g.V([personId, personId]).fold().
+        var gremlin = @"
+g.V().has('person','personId',personId).fold().
   coalesce(
-    // UPDATE (vertex exists)
     unfold()
-      .property('name', name)
-      .property('email', email)
-      .property('updatedAt', updatedAt),
-    // CREATE (vertex missing)
+      .property('name',name)
+      .property('email',email)
+      .property('accountId',accountId)
+      .property('updatedAt',updatedAt),
     addV('person')
-      .property('{_pkName}', personId)   // <-- set PK once
-      .property('id', personId)          // element id == personId
-      .property('accountId', accountId)
-      .property('name', name)
-      .property('email', email)
-      .property('createdAt', createdAt)
-      .property('updatedAt', updatedAt)
-  )
-  .project('id','personId','accountId','name','email','createdAt','updatedAt')
-  .by(id())
-  .by(values('personId'))
-  .by(coalesce(values('accountId'), constant('')))
-  .by(values('name'))
-  .by(coalesce(values('email'), constant('')))
-  .by(values('createdAt'))
-  .by(values('updatedAt'))
-";
+      .property('id', id)
+      .property('personId',personId)
+      .property('accountId',accountId)
+      .property('name',name)
+      .property('email',email)
+      .property('createdAt',createdAt)
+      .property('updatedAt',updatedAt)
+  ).
+  valueMap(true)";
 
-        var bindings = new Dictionary<string, object> {
-            ["personId"]  = personId,
-            ["accountId"] = p.AccountId ?? "",
-            ["name"]      = p.Name,
-            ["email"]     = p.Email ?? "",
-            ["createdAt"] = nowIso,
-            ["updatedAt"] = nowIso
+        var bindings = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["personId"] = person.PersonId,
+            ["accountId"] = person.AccountId,
+            ["name"] = person.Name,
+            ["email"] = person.Email,
+            ["createdAt"] = createdAt.UtcDateTime.ToString("o", CultureInfo.InvariantCulture),
+            ["updatedAt"] = now.UtcDateTime.ToString("o", CultureInfo.InvariantCulture)
         };
 
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, bindings);
-        var mapped = MapPerson(rs.Single());
-        return (mapped, ReadRu(rs));
+        var rs = await _client.SubmitAsync<dynamic>(gremlin, bindings).ConfigureAwait(false);
+        var mapped = rs.Any()
+            ? MapPersonFromValueMap(rs.First())
+            : // extremely unlikely (coalesce always returns a vertex), but fall back to input
+              new Person
+              {
+                  Id = id,
+                  PersonId = person.PersonId,
+                  AccountId = person.AccountId,
+                  Name = person.Name,
+                  Email = person.Email,
+                  CreatedAt = createdAt,
+                  UpdatedAt = now
+              };
+
+        return (mapped, GetRu(rs));
     }
 
-    public async Task<(Person?, double)> GetPersonAsync(string personId, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<Person> persons, IReadOnlyList<(string source, string target, DateTimeOffset createdAt)> edges, double ru)>
+        GetGraphAsync(int vertexLimit = 2000, int edgeLimit = 10000, CancellationToken ct = default)
     {
-        // PK == ID
-        var q = @"
-g.V([personId, personId]).fold().
-  coalesce(unfold(), V().hasLabel('person').hasId(personId))
-  .limit(1)
-  .project('id','personId','accountId','name','email','createdAt','updatedAt')
-  .by(id())
-  .by(values('personId'))
-  .by(coalesce(values('accountId'), constant('')))
-  .by(values('name'))
-  .by(coalesce(values('email'), constant('')))
-  .by(values('createdAt'))
-  .by(values('updatedAt'))
-";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() { ["personId"] = personId });
-        var person = rs.Any() ? MapPerson(rs.Single()) : null;
-        return (person, ReadRu(rs));
-    }
+        // 1) Pull person vertices
+        var vScript = @"
+g.V().hasLabel('person').limit(vLimit).valueMap(true)";
+        var vBindings = new Dictionary<string, object?> { ["vLimit"] = vertexLimit };
 
-    public async Task<(bool, double)> DeletePersonAsync(string personId, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId)).bothE().drop();
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId)).drop()
-";
-        var rs = await _client.SubmitAsync<dynamic>(q, new() { ["personId"] = personId });
-        return (true, ReadRu(rs));
-    }
+        var vRs = await _client.SubmitAsync<dynamic>(vScript, vBindings).ConfigureAwait(false);
+        var persons = vRs.Select(MapPersonFromValueMap).ToList();
 
-    // ---------------- Relationships ----------------
+        // 2) Pull edges that connect person->person (any label), limited
+        var eScript = @"
+g.E().limit(eLimit).
+  where(outV().hasLabel('person')).
+  where(inV().hasLabel('person')).
+  project('source','target','createdAt').
+    by(outV().id()).
+    by(inV().id()).
+    by(values('createdAt'))";
+        var eBindings = new Dictionary<string, object?> { ["eLimit"] = edgeLimit };
 
-    public async Task<(bool, double)> FollowAsync(string followerId, string followeeId, CancellationToken ct = default)
-    {
-        var nowIso = Iso(DateTimeOffset.UtcNow);
+        var eRs = await _client.SubmitAsync<dynamic>(eScript, eBindings).ConfigureAwait(false);
 
-        var q = @"
-// Resolve vertices via point-reads (pk == id)
-g.V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f')
- .V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t')
- .coalesce(
-   select('f').outE('follows').where(inV().as('t')).limit(1),
-   addE('follows').from('f').to('t').property('createdAt', createdAt)
- )
-";
-
-        if (_maintainReverseEdge)
+        var edges = new List<(string source, string target, DateTimeOffset createdAt)>(eRs.Count);
+        foreach (var row in eRs)
         {
-            q += @"
-; g.V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t2')
-   .V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f2')
-   .coalesce(
-     select('t2').outE('followedBy').where(inV().as('f2')).limit(1),
-     addE('followedBy').from('t2').to('f2').property('createdAt', createdAt)
-   )";
+            // row is a dictionary-like dynamic with keys: source, target, createdAt
+            var map = (IDictionary<string, object>)row;
+            var source = map.TryGetValue("source", out var sObj) ? sObj?.ToString() ?? "" : "";
+            var target = map.TryGetValue("target", out var tObj) ? tObj?.ToString() ?? "" : "";
+
+            DateTimeOffset createdAt = DateTimeOffset.MinValue;
+            if (map.TryGetValue("createdAt", out var cObj) && cObj is not null)
+            {
+                if (cObj is string cStr && !string.IsNullOrWhiteSpace(cStr))
+                {
+                    if (DateTimeOffset.TryParse(cStr, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
+                        createdAt = parsed.ToUniversalTime();
+                }
+                else if (cObj is DateTime dt)
+                {
+                    createdAt = new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+                }
+                else if (cObj is DateTimeOffset dto)
+                {
+                    createdAt = dto.ToUniversalTime();
+                }
+            }
+
+            if (!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(target))
+                edges.Add((source, target, createdAt));
         }
 
-        var rs = await _client.SubmitAsync<dynamic>(q, new() {
+        var totalRu = GetRu(vRs) + GetRu(eRs);
+        return (persons, edges, totalRu);
+    }
+
+    public async Task<(Person? person, double ru)> GetPersonAsync(string personId, CancellationToken ct = default)
+    {
+        var script = @"
+g.V().has('person','personId',personId).limit(1).valueMap(true)";
+        var bindings = new Dictionary<string, object?> { ["personId"] = personId };
+
+        var rs = await _client.SubmitAsync<dynamic>(script, bindings).ConfigureAwait(false);
+
+        Person? person = rs.Any() ? MapPersonFromValueMap(rs.First()) : null;
+        return (person, GetRu(rs));
+    }
+
+    public async Task<(bool deleted, double ru)> DeletePersonAsync(string personId, CancellationToken ct = default)
+    {
+        // Returns true if found and dropped, else false, all in one round-trip.
+        var script = @"
+g.V().has('person','personId',personId).fold().
+  coalesce(
+    unfold().as('v').
+      bothE().drop().
+      select('v').drop().
+      constant(true),
+    constant(false)
+  )";
+        var bindings = new Dictionary<string, object?> { ["personId"] = personId };
+
+        var rs = await _client.SubmitAsync<bool>(script, bindings).ConfigureAwait(false);
+        bool deleted = rs.FirstOrDefault();
+        return (deleted, GetRu(rs));
+    }
+
+    public async Task<double> DeleteGraphAsync(CancellationToken ct = default)
+    {
+        // Force the real Gremlin.NET GraphSON path by using RequestMessage.
+        var msg = RequestMessage.Build(Tokens.OpsEval)
+            .AddArgument(Tokens.ArgsGremlin, "g.V().drop()")
+            .Create();
+
+        var rs = await _client.SubmitAsync<dynamic>(msg).ConfigureAwait(false);
+        return GetRu(rs); // your existing RU helper
+    }
+
+    public async Task<(bool created, double ru)> FollowAsync(string followerId, string followeeId, CancellationToken ct = default)
+    {
+        // No self-follow, and require ids
+        if (string.IsNullOrWhiteSpace(followerId) ||
+            string.IsNullOrWhiteSpace(followeeId) ||
+            string.Equals(followerId, followeeId, StringComparison.Ordinal))
+        {
+            return (false, 0d);
+        }
+
+        var createdAt = DateTimeOffset.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+
+        // If both vertices exist:
+        // - if edge already exists: return false
+        // - else create edge with createdAt and return true
+        // If either vertex missing: traversal yields no result -> treat as false
+        var script = @"
+g.V().has('person','personId',followerId).limit(1).as('a').
+  V().has('person','personId',followeeId).limit(1).as('b').
+  coalesce(
+    select('a').outE('follows').where(inV().as('b')).limit(1).constant(false),
+    addE('follows').from('a').to('b').property('createdAt',createdAt).constant(true)
+  )";
+
+        var bindings = new Dictionary<string, object?>
+        {
             ["followerId"] = followerId,
             ["followeeId"] = followeeId,
-            ["createdAt"]  = nowIso
-        });
-        return (true, ReadRu(rs));
-    }
-
-    public async Task<(bool, double)> UnfollowAsync(string followerId, string followeeId, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f')
- .V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t')
- .coalesce(
-   select('f').outE('follows').where(inV().as('t')).limit(1).drop(),
-   constant('ok')
- )
-";
-
-        if (_maintainReverseEdge)
-        {
-            q += @"
-; g.V([followeeId, followeeId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followeeId)).as('t2')
-   .V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId)).as('f2')
-   .coalesce(
-     select('t2').outE('followedBy').where(inV().as('f2')).limit(1).drop(),
-     constant('ok')
-   )";
-        }
-
-        var rs = await _client.SubmitAsync<dynamic>(q, new() {
-            ["followerId"] = followerId,
-            ["followeeId"] = followeeId
-        });
-        return (true, ReadRu(rs));
-    }
-
-    public async Task<(bool, double)> IsFollowingAsync(string followerId, string followeeId, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([followerId, followerId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(followerId))
- .out('follows').hasId(followeeId)
- .limit(1).count()
-";
-        var rs = await _client.SubmitAsync<long>(q, new() {
-            ["followerId"] = followerId, ["followeeId"] = followeeId
-        });
-        var exists = rs.FirstOrDefault() > 0;
-        return (exists, ReadRu(rs));
-    }
-
-    // ---------------- Lists & counts ----------------
-
-    public async Task<(IReadOnlyList<Person>, double)> GetFollowingAsync(string personId, int skip = 0, int take = 50, CancellationToken ct = default)
-    {
-        var startIdx = Math.Max(0, skip);
-        var endIdx   = startIdx + take;
-
-        var q = @"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
-  .out('follows')
-  .range(startIdx, endIdx)
-  .project('id','personId','accountId','name','email','createdAt','updatedAt')
-  .by(id())
-  .by(values('personId'))
-  .by(coalesce(values('accountId'), constant('')))
-  .by(values('name'))
-  .by(coalesce(values('email'), constant('')))
-  .by(values('createdAt'))
-  .by(values('updatedAt'))
-";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
-            ["personId"] = personId, ["startIdx"] = startIdx, ["endIdx"] = endIdx
-        });
-        return (rs.Select(MapPerson).ToList(), ReadRu(rs));
-    }
-
-    public async Task<(IReadOnlyList<Person>, double)> GetFollowersAsync(string personId, int skip = 0, int take = 50, CancellationToken ct = default)
-    {
-        var startIdx = Math.Max(0, skip);
-        var endIdx   = startIdx + take;
-        var edgeTraversal = _maintainReverseEdge ? "out('followedBy')" : "in('follows')";
-
-        var q = $@"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
-  .{edgeTraversal}
-  .range(startIdx, endIdx)
-  .project('id','personId','accountId','name','email','createdAt','updatedAt')
-  .by(id())
-  .by(values('personId'))
-  .by(coalesce(values('accountId'), constant('')))
-  .by(values('name'))
-  .by(coalesce(values('email'), constant('')))
-  .by(values('createdAt'))
-  .by(values('updatedAt'))
-";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
-            ["personId"] = personId, ["startIdx"] = startIdx, ["endIdx"] = endIdx
-        });
-        return (rs.Select(MapPerson).ToList(), ReadRu(rs));
-    }
-
-    public async Task<(long, double)> CountFollowingAsync(string personId, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
- .out('follows').count()
-";
-        var rs = await _client.SubmitAsync<long>(q, new() { ["personId"] = personId });
-        return (rs.FirstOrDefault(), ReadRu(rs));
-    }
-
-    public async Task<(long, double)> CountFollowersAsync(string personId, CancellationToken ct = default)
-    {
-        var edge = _maintainReverseEdge ? "out('followedBy')" : "in('follows')";
-        var q = $@"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId)).{edge}.count()
-";
-        var rs = await _client.SubmitAsync<long>(q, new() { ["personId"] = personId });
-        return (rs.FirstOrDefault(), ReadRu(rs));
-    }
-
-    // ---------------- Suggestions & mutuals ----------------
-
-    public async Task<(IReadOnlyList<(Person person, long mutuals)> suggestions, double ru)> SuggestToFollowAsync(string personId, int limit = 20, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
-  .out('follows').aggregate('mine')
-  .out('follows')
-  .where(without('mine'))
-  .where(id().is(neq(personId)))
-  .groupCount()                 // group by vertex
-  .order(local).by(values, decr)
-  .limit(local, limit)
-  .unfold()
-  .project('person','score')
-    .by(select(keys)
-        .project('id','personId','accountId','name','email','createdAt','updatedAt')
-        .by(id())
-        .by(values('personId'))
-        .by(coalesce(values('accountId'), constant('')))
-        .by(values('name'))
-        .by(coalesce(values('email'), constant('')))
-        .by(values('createdAt'))
-        .by(values('updatedAt')))
-    .by(select(values))
-";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
-            ["personId"] = personId, ["limit"] = limit
-        });
-        var list = rs.Select(d =>
-        {
-            var uDict = (Dictionary<string, object>)d["person"];
-            var person = MapPerson(uDict);
-            var mutuals = Convert.ToInt64(d["score"]);
-            return (person, mutuals);
-        }).ToList();
-        return (list, ReadRu(rs));
-    }
-
-    public async Task<(IReadOnlyList<Person>, double)> MutualFollowsAsync(string personIdA, string personIdB, int limit = 50, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([personIdA, personIdA]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personIdA))
- .out('follows').aggregate('aF')
- .V([personIdB, personIdB]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personIdB))
- .out('follows')
- .where(within('aF'))
- .limit(limit)
- .project('id','personId','accountId','name','email','createdAt','updatedAt')
- .by(id())
- .by(values('personId'))
- .by(coalesce(values('accountId'), constant('')))
- .by(values('name'))
- .by(coalesce(values('email'), constant('')))
- .by(values('createdAt'))
- .by(values('updatedAt'))
-";
-        var rs = await _client.SubmitAsync<Dictionary<string, object>>(q, new() {
-            ["personIdA"] = personIdA, ["personIdB"] = personIdB, ["limit"] = limit
-        });
-        return (rs.Select(MapPerson).ToList(), ReadRu(rs));
-    }
-
-    // ---------------- Utility ----------------
-
-    public async Task<(IReadOnlyList<string>, double)> GetFolloweeIdsAsync(string personId, int max = 500, CancellationToken ct = default)
-    {
-        var q = @"
-g.V([personId, personId]).fold().coalesce(unfold(), V().hasLabel('person').hasId(personId))
-  .out('follows')
-  .limit(max)
-  .id()
-";
-        var rs = await _client.SubmitAsync<string>(q, new() { ["personId"] = personId, ["max"] = max });
-        return (rs.ToList(), ReadRu(rs));
-    }
-
-    // ----- helpers -----
-
-    private static string Iso(DateTimeOffset dto) => dto.UtcDateTime.ToString("o");
-
-    private static Person MapPerson(Dictionary<string, object> d) => new()
-    {
-        Id        = (string)d["id"],
-        PersonId  = d.TryGetValue("personId", out var pid) ? (string)pid : (string)d["id"],
-        AccountId = d.TryGetValue("accountId", out var aid) ? (string)aid : "",
-        Name      = (string)d["name"],
-        Email     = d.TryGetValue("email", out var e) && e is string s && s.Length > 0 ? s : null,
-        CreatedAt = ToDto(d["createdAt"]),
-        UpdatedAt = ToDto(d["updatedAt"])
-    };
-
-    private static DateTimeOffset ToDto(object v) =>
-        v switch
-        {
-            DateTimeOffset dto => dto,
-            DateTime dt => new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Utc)),
-            string s => DateTimeOffset.Parse(s, null, DateTimeStyles.AdjustToUniversal),
-            _ => DateTimeOffset.UtcNow
+            ["createdAt"] = createdAt
         };
 
-    private static double ReadRu<TResult>(ResultSet<TResult> rs)
+        var rs = await _client.SubmitAsync<bool>(script, bindings).ConfigureAwait(false);
+        bool created = rs.FirstOrDefault(); // empty => false
+        return (created, GetRu(rs));
+    }
+
+    // --------------------------
+    // Helpers
+    // --------------------------
+
+    private static Person MapPersonFromValueMap(dynamic row)
     {
-        const string RuKey = "x-ms-total-request-charge";
+        var map = (IDictionary<string, object>)row;
 
-        if (rs?.StatusAttributes == null) return 0d;
-        if (!rs.StatusAttributes.TryGetValue(RuKey, out var v) || v is null) return 0d;
-
-        switch (v)
+        string GetString(string key)
         {
-            case double d:   return d;
-            case float f:    return f;
-            case decimal m:  return (double)m;
-            case long l:     return l;
-            case int i:      return i;
-            case string s when double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed):
-                return parsed;
-            case JsonElement je:
-                if (je.ValueKind == JsonValueKind.Number && je.TryGetDouble(out var num))
-                    return num;
-                if (je.ValueKind == JsonValueKind.String &&
-                    double.TryParse(je.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var strNum))
-                    return strNum;
-                break;
+            if (!map.TryGetValue(key, out var val) || val is null) return "";
+            // valueMap(true) returns lists for properties; id/label are scalars
+            if (val is string s) return s;
+            if (val is IEnumerable<object> list)
+            {
+                var first = list.Cast<object?>().FirstOrDefault();
+                return first?.ToString() ?? "";
+            }
+            return val.ToString() ?? "";
         }
 
-        // Last-ditch attempt
-        return double.TryParse(v.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var fallback)
-            ? fallback
-            : 0d;
+        DateTimeOffset GetDto(string key)
+        {
+            var s = GetString(key);
+            if (string.IsNullOrWhiteSpace(s)) return DateTimeOffset.MinValue;
+            if (DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dto))
+                return dto.ToUniversalTime();
+            return DateTimeOffset.MinValue;
+        }
+
+        var id = map.TryGetValue("id", out var idObj) ? idObj?.ToString() ?? "" : "";
+
+        return new Person
+        {
+            Id = id,
+            PersonId = GetString("personId"),
+            AccountId = GetString("accountId"),
+            Name = GetString("name"),
+            Email = GetString("email"),
+            CreatedAt = GetDto("createdAt"),
+            UpdatedAt = GetDto("updatedAt")
+        };
+    }
+
+    private static double GetRu<T>(ResultSet<T> rs)
+    {
+        if (rs?.StatusAttributes is null) return 0d;
+
+        // Cosmos DB Gremlin API commonly uses "x-ms-total-request-charge"; some responses use "x-ms-request-charge"
+        var attrs = rs.StatusAttributes;
+        if (attrs.TryGetValue("x-ms-total-request-charge", out var total) && TryToDouble(total, out var d1)) return d1;
+        if (attrs.TryGetValue("x-ms-request-charge", out var single) && TryToDouble(single, out var d2)) return d2;
+
+        return 0d;
+
+        static bool TryToDouble(object? o, out double d)
+        {
+            switch (o)
+            {
+                case double dd: d = dd; return true;
+                case float ff: d = ff; return true;
+                case decimal m: d = (double)m; return true;
+                case long l: d = l; return true;
+                case int i: d = i; return true;
+                case string s when double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var p): d = p; return true;
+                default: d = 0; return false;
+            }
+        }
     }
 }

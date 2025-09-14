@@ -1,35 +1,76 @@
-// src/components/blipFeed.jsx
+// src/components/BlipFeed.jsx
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 
-function formatDate(iso) {
+// --- Axios client (centralized like UsersPage/BlipPost) ---
+const API_BASE_URL = (import.meta.env?.VITE_API_BLIP_FEED || '').replace(/\/+$/, '')
+
+const http = axios.create({
+  baseURL: API_BASE_URL || undefined, // falls back to relative if unset
+  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+})
+
+// RU from header (Cosmos)
+const parseRu = (res) => {
+  const h = res?.headers?.['x-ms-request-charge']
+  const ru = h ? parseFloat(Array.isArray(h) ? h[0] : h) : 0
+  return Number.isFinite(ru) ? ru : 0
+}
+
+// Uniform error shape
+const getErr = (err) =>
+  err?.response?.data?.error ||
+  err?.response?.data?.message ||
+  (typeof err?.response?.data === 'string' ? err.response.data : '') ||
+  err.message ||
+  'Request failed'
+
+// Minimal API wrapper
+const api = {
+  // GET /blips?userId&cursor&pageSize
+  list: async ({ userId, pageSize = 10, cursor } = {}) => {
+    const res = await http.get('/blips', { params: { userId, pageSize, cursor } })
+    // prefer header RU; fall back to body.ru if service returns it
+    const ru = parseRu(res) || Number(res.data?.ru) || 0
+    const items = Array.isArray(res.data?.items) ? res.data.items : []
+    const nextCursor = res.data?.continuationToken || res.data?.next || null
+    return { items, nextCursor, ru }
+  },
+}
+
+// --- helpers ---
+const formatDate = (iso) => {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleString()
 }
 
-function BlipFeed() {
+export default function BlipFeed({ userId, pageSize = 10 })  {
   const [feed, setFeed] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [ru, setRu] = useState(0)
 
   useEffect(() => {
-    const fetchFeed = async () => {
+    let mounted = true
+    ;(async () => {
       try {
-        const response = await fetch('https://blipfeed.blips.service/blips?userId=1&pageSize=10')
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const data = await response.json()
-        setFeed(Array.isArray(data.items) ? data.items : [])
-        setRu(Number(data.ru) || 0)
-      } catch (err) {
-        setError(err.message)
+        setLoading(true)
+        setError(null)
+        const { items, ru } = await api.list({ userId, pageSize })
+        if (!mounted) return
+        setFeed(items)
+        setRu(ru)
+      } catch (e) {
+        if (!mounted) return
+        setError(getErr(e))
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
-    }
-    fetchFeed()
-  }, [])
+    })()
+    return () => { mounted = false }
+  }, [userId, pageSize])
 
   if (loading) {
     return (
@@ -79,5 +120,3 @@ function BlipFeed() {
     </>
   )
 }
-
-export default BlipFeed

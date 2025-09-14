@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Azure.Identity;
+using Azure.ResourceManager.CosmosDB;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,12 +34,12 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
     var opt = sp.GetRequiredService<IOptions<CosmosOptions>>().Value;
 
     // Allow quick override to force IPv4 if needed (helps on some stacks)
-    var endpoint = Environment.GetEnvironmentVariable("COSMOS_ENDPOINT") ?? opt.Endpoint;
-    //var key = Environment.GetEnvironmentVariable("COSMOS_KEY") ?? opt.Key;
+    var endpoint = opt.Endpoint;
+
 
     var clientOptions = new CosmosClientOptions
     {
-        ApplicationName = "Vibe.Blips",
+        ApplicationName = "Blips.BlipFeed",
         ConnectionMode = ConnectionMode.Gateway,   // emulator-friendly (unchanged)
         LimitToEndpoint = true,                    // (unchanged)
         SerializerOptions = new CosmosSerializationOptions
@@ -67,6 +68,9 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
                 Timeout = TimeSpan.FromSeconds(65)
             };
         };
+        
+        return new CosmosClient(endpoint, opt.Key, clientOptions);
+
     }
 
     //return new CosmosClient(endpoint, key, clientOptions);

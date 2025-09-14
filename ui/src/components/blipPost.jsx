@@ -62,7 +62,7 @@ const makeRandomBlip = () => {
   return s
 }
 
-export default function BlipPost({ userId = '18ae9edf4-60e8-440a-a833-13842fa90652', onPosted }) {
+export default function BlipPost({ userId, onPosted }) {
   const [text, setText] = useState('')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState(null)

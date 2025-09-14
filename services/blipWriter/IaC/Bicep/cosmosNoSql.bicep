@@ -1,7 +1,7 @@
 param cosmosAccountName string = 'cosmos-sysdesign'
 param databaseName string = 'BlipsDb'
-param containerName string = 'Accounts'
-param partitionKeyPath string = '/accountId'
+param containerName string = 'Blips'
+param partitionKeyPath string = '/userId'
 
 
 
@@ -13,13 +13,10 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existi
   name: cosmosAccountName
 }
 
-resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+// get existing SQL DB account
+resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' existing = {
   name: databaseName
   parent: cosmosAccount
-  properties: {
-    resource: { id: databaseName }
-    options: {}
-  }
 }
 
 resource sqlContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
@@ -29,7 +26,6 @@ resource sqlContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/contai
     resource: {
       id: containerName
       partitionKey: { paths: [partitionKeyPath], kind: 'Hash', version: 2 }
-      // add TTL/uniqueKeys/indexing policy here if your service owns them
     }
     options: {}
   }

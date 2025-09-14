@@ -6,18 +6,21 @@ $aksName     = "aks-sysdesign"         # 👈 keep in sync with your bicep
 $aksRG       = "sysdesign"             # 👈 resource group for the AKS cluster
 $release     = "blipwriter"
 $namespace   = "blipwriter"
-$chartPath   = "./helm"
+$chartPath   = (Resolve-Path (Join-Path $PSScriptRoot '..\..\helm')).Path
 # DNS
 $recordRG    = "global"
 $zoneName    = "priv.dns-sysdesign.com"
 $recordName  = "blipwriter"
 $agwIp       = ""           # Application Gateway public IP
 # --------------------------------------------------------------------------
+$ficIdentityName = "blipwriter-fic-identity"
 
 $folderName  = "blipWriter"
-Set-Location -Path "./services/${folderName}"
+Set-Location -Path "./services/${folderName}/IaC/Scripts"
 
-# az account set --subscription $env:AZURE_SUBSCRIPTION_ID | Out-Null
+if (-not (Test-Path (Join-Path $chartPath 'Chart.yaml'))) {
+  throw "Helm chart not found at: $chartPath"
+}
 
 # --------------------------------------------------------------------------
 # 1. Login to Azure Container Registry
@@ -34,7 +37,7 @@ Write-Host "ACR login successful." -ForegroundColor Green
 # 2. Build & push image
 # --------------------------------------------------------------------------
 Write-Host "Building image ${imageName}:${imageTag} ..."
-docker build -t "${imageName}:${imageTag}" . || throw "Docker build failed."
+docker build -t "${imageName}:${imageTag}" ../.. || throw "Docker build failed."
 
 Write-Host "Tagging for ACR → ${fullImageName} ..."
 docker tag "${imageName}:${imageTag}" $fullImageName || throw "Tagging failed."
@@ -68,10 +71,19 @@ helm uninstall $release -n $namespace 2>$null
 # Escaping dots in annotation key (PowerShell) → use backtick `
 #$saAnnotationKeyEsc = "serviceAccount.annotations.azure`\.workload`\.identity\/client-id"
 $saAnnotationKeyEsc = "serviceAccount.annotations.azure\.workload\.identity\/client-id"
-$uamiClientId = az identity show -g $aksRG -n 'aks-sysdesign-identity' --query clientId -o tsv
+
+if (-not (az identity show -g $aksRG -n $ficIdentityName --query "name" -o tsv 2>$null)) {
+    $rgLocation = az group show -n $aksRG --query location -o tsv
+    Write-Host "Creating user-assigned identity '$ficIdentityName' in $rgLocation ..."
+    az identity create -g $aksRG -n $ficIdentityName -l $rgLocation --output none
+    if ($LASTEXITCODE) { throw "Failed to create user-assigned managed identity '$ficIdentityName'." }
+}
+
+$uamiClientId = az identity show -g $aksRG -n $ficIdentityName --query clientId -o tsv
+
 
 if (-not $uamiClientId) {
-    throw "Could not retrieve Workload Identity client‑ID."
+    throw "Could not retrieve client-ID for '$ficIdentityName'."
 }
 Write-Host "Workload Identity UAMI client‑ID: ${uamiClientId}"
 
@@ -80,18 +92,31 @@ $issuerUrl = az aks show -g $aksRG -n $aksName --query "oidcIssuerProfile.issuer
 if (-not $issuerUrl) { throw "Could not retrieve AKS OIDC issuer URL." }
 Write-Host "AKS OIDC Issuer URL: ${issuerUrl}"
 
-# Create or update federated identity credential
+
+# Create or update federated identity credential on the NEW UAMI (not the AKS identity)
 $fedCredName = "blipwriter-fed-cred"  # Unique name
-az identity federated-credential delete --name $fedCredName --identity-name aks-sysdesign-identity --resource-group $aksRG --yes --output none
+az identity federated-credential delete `
+    --name $fedCredName `
+    --identity-name $ficIdentityName `
+    --resource-group $aksRG `
+    --yes --output none
+
 az identity federated-credential create `
     --name $fedCredName `
-    --identity-name aks-sysdesign-identity `
+    --identity-name $ficIdentityName `
     --resource-group $aksRG `
     --issuer $issuerUrl `
     --subject system:serviceaccount:blipwriter:blipwriter-sa `
     --audiences api://AzureADTokenExchange
 if ($LASTEXITCODE) { throw "Failed to create federated identity credential." }
-Write-Host "Federated identity credential created: ${fedCredName}" -ForegroundColor Green
+Write-Host "Federated identity credential created on '$ficIdentityName': ${fedCredName}" -ForegroundColor Green
+
+# Deploy infrastructure (unchanged; now parameterized with the NEW UAMI clientId)
+$uamiPrincipalId = az identity show -g $aksRG -n $ficIdentityName --query principalId -o tsv
+if (-not $uamiPrincipalId) { throw "Couldn't resolve principalId for $ficIdentityName" }
+
+az deployment group create -g 'sysdesign' -f ../Bicep/main.bicep `
+    --parameters principalId=$uamiPrincipalId
 
 # Wait for propagation
 Start-Sleep -Seconds 5
@@ -99,7 +124,6 @@ Start-Sleep -Seconds 5
 # Log environment variables
 Write-Host "Environment variables:"
 Write-Host "ASPNETCORE_ENVIRONMENT: $env:ASPNETCORE_ENVIRONMENT"
-
 
 helm upgrade --install $release $chartPath `
     --namespace $namespace --create-namespace --atomic `
@@ -110,8 +134,6 @@ helm upgrade --install $release $chartPath `
     --set-string "env.ASPNETCORE_FORWARDEDHEADERS_ENABLED=true"
 
 if ($LASTEXITCODE) { throw "Helm upgrade/install failed." }
-
-
 
 Write-Host "Helm release ${release} deployed in namespace ${namespace}." -ForegroundColor Green
 

@@ -1,30 +1,77 @@
-// src/components/blipPost.jsx
+// src/components/BlipPost.jsx
 import { useState } from 'react'
 import axios from 'axios'
 
-const api = axios.create({
-  baseURL: 'https://blipwriter.blips.service',
+// --- Axios client (same pattern as UsersPage) ---
+const API_BASE_URL = (import.meta.env?.VITE_API_BLIP_WRITER || '').replace(/\/+$/, '')
+
+const http = axios.create({
+  baseURL: API_BASE_URL || undefined, // falls back to relative requests if unset
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 })
 
-function BlipPost({ userId = '1', onPosted }) {
+// Read RU header (Cosmos)
+const parseRu = (res) => {
+  const h = res?.headers?.['x-ms-request-charge']
+  const ru = h ? parseFloat(Array.isArray(h) ? h[0] : h) : 0
+  return Number.isFinite(ru) ? ru : 0
+}
+
+// Uniform error message extraction
+const getErr = (err) =>
+  err?.response?.data?.error ||
+  err?.response?.data?.message ||
+  (typeof err?.response?.data === 'string' ? err.response.data : '') ||
+  err.message ||
+  'Request failed'
+
+// Minimal API wrapper
+const api = {
+  // POST /blips expects: { userId, text }
+  post: async ({ userId, text }) => {
+    const res = await http.post('/blips', { userId, text })
+    return { data: res.data, ru: parseRu(res) }
+  },
+}
+
+// -------- Random blip helpers (module scope so they don't re-create per render) --------
+const WORDS = [
+  'blip','beam','ping','pulse','flux','echo','spark','nexus','async','queue',
+  'azure','aws','cosmos','docv','ocr','model','event','topic','stream','batch',
+  'retry','circuit','cache','index','vector','token','gpu','latency','throughput',
+  'scale','shard','commit','rollback','log','feed','writer','reader','service',
+  'edge','cloud','serverless','gateway','ingest','monitor','metric','trace','id',
+  'random','demo','note','update','status','vibe','hello','world','test'
+]
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n))
+const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+const capitalize = (str) => (str ? str[0].toUpperCase() + str.slice(1) : str)
+const makeRandomBlip = () => {
+  const words = []
+  const targetWords = randomInt(5, 28) // ~short tweet
+  for (let i = 0; i < targetWords; i++) {
+    const w = WORDS[randomInt(0, WORDS.length - 1)]
+    words.push(i === 0 ? capitalize(w) : w)
+  }
+  let s = words.join(' ')
+  // a little punctuation sometimes
+  const punct = ['.', '!', '…', ' 🚀']
+  if (Math.random() < 0.7) s += punct[randomInt(0, punct.length - 1)]
+  // keep within 280 chars
+  if (s.length > 280) s = s.slice(0, 279) + '…'
+  return s
+}
+
+export default function BlipPost({ userId = '18ae9edf4-60e8-440a-a833-13842fa90652', onPosted }) {
   const [text, setText] = useState('')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState(null)
   const [ok, setOk] = useState(false)
-  const [okMsg, setOkMsg] = useState('') // show custom success messages
+  const [okMsg, setOkMsg] = useState('') // custom success messages
   const [lastRu, setLastRu] = useState(null)
 
   // Random-post controls
   const [bulkCount, setBulkCount] = useState(5)
-
-  const clamp = (n, min, max) => Math.max(min, Math.min(max, n))
-
-  const parseRu = (res) => {
-    const h = res?.headers?.['x-ms-request-charge']
-    const ru = h ? parseFloat(Array.isArray(h) ? h[0] : h) : 0
-    return Number.isFinite(ru) ? ru : 0
-  }
 
   const postBlip = async () => {
     const bodyText = text.trim()
@@ -36,55 +83,20 @@ function BlipPost({ userId = '1', onPosted }) {
       setOk(false)
       setOkMsg('')
 
-      const res = await api.post('/blips', { userId, text: bodyText })
-      const ru = parseRu(res)
+      const { data, ru } = await api.post({ userId, text: bodyText })
       setLastRu(ru)
 
       setOk(true)
       setOkMsg('Posted!')
       setText('')
 
-      onPosted?.({ data: res.data, ru })
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        (typeof err.response?.data === 'string' ? err.response.data : '') ||
-        err.message
-      setError(msg)
+      onPosted?.({ data, ru })
+    } catch (e) {
+      setError(getErr(e))
     } finally {
       setPosting(false)
     }
   }
-
-  // --- Random blips ---
-  const WORDS = [
-    'blip','beam','ping','pulse','flux','echo','spark','nexus','async','queue',
-    'azure','aws','cosmos','docv','ocr','model','event','topic','stream','batch',
-    'retry','circuit','cache','index','vector','token','gpu','latency','throughput',
-    'scale','shard','commit','rollback','log','feed','writer','reader','service',
-    'edge','cloud','serverless','gateway','ingest','monitor','metric','trace','id',
-    'random','demo','note','update','status','vibe','hello','world','test'
-  ]
-
-  const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
-
-  const makeRandomBlip = () => {
-    const words = []
-    const targetWords = randomInt(5, 28) // ~short tweet
-    for (let i = 0; i < targetWords; i++) {
-      const w = WORDS[randomInt(0, WORDS.length - 1)]
-      words.push(i === 0 ? capitalize(w) : w)
-    }
-    let s = words.join(' ')
-    // add a little punctuation sometimes
-    const punct = ['.', '!', '…', ' 🚀']
-    if (Math.random() < 0.7) s += punct[randomInt(0, punct.length - 1)]
-    // keep within 280 chars
-    if (s.length > 280) s = s.slice(0, 279) + '…'
-    return s
-  }
-
-  const capitalize = (str) => (str ? str[0].toUpperCase() + str.slice(1) : str)
 
   const postRandomBlips = async () => {
     if (posting) return
@@ -103,23 +115,17 @@ function BlipPost({ userId = '1', onPosted }) {
       for (let i = 0; i < count; i++) {
         const payload = { userId, text: makeRandomBlip() }
         try {
-          const res = await api.post('/blips', payload)
-          const ru = parseRu(res)
+          const { data, ru } = await api.post(payload)
           totalRu += ru
           okCount += 1
-          onPosted?.({ data: res.data, ru })
+          onPosted?.({ data, ru })
         } catch (e) {
-          if (!firstErr) {
-            firstErr =
-              e.response?.data?.message ||
-              (typeof e.response?.data === 'string' ? e.response.data : '') ||
-              e.message
-          }
-          // Continue posting remaining items
+          if (!firstErr) firstErr = getErr(e)
+          // continue loop
         }
       }
 
-      setLastRu(totalRu) // show total RU used for the batch
+      setLastRu(totalRu)
       if (okCount === count) {
         setOk(true)
         setOkMsg(`Posted ${okCount} random blip${okCount > 1 ? 's' : ''}!`)
@@ -210,5 +216,3 @@ function BlipPost({ userId = '1', onPosted }) {
     </div>
   )
 }
-
-export default BlipPost

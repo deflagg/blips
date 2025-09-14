@@ -22,7 +22,9 @@ public sealed class CosmosBlipsRepository : IBlipsRepository
     public CosmosBlipsRepository(CosmosClient client, IOptions<CosmosOptions> opt)
     {
         var o = opt.Value;
-        _container = client.GetContainer(o.DatabaseId, o.ContainerId);
+        var db = o.Databases["BlipsDatabase"];
+        var c = db.Containers["Blips"];
+        _container = client.GetContainer(db.DatabaseId, c.ContainerId);
     }
 
     public async Task<(Blip, string, double)> CreateAsync(Blip blip, CancellationToken ct)

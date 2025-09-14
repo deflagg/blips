@@ -4,7 +4,7 @@ import axios from 'axios'
 import cytoscape from 'cytoscape'
 
 // --- Axios client (same baseURL pattern)
-const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || '').replace(/\/+$/, '')
+const API_BASE_URL = (import.meta.env?.VITE_API_BLIP_USER_ADMIN || '').replace(/\/+$/, '')
 const http = axios.create({
   baseURL: API_BASE_URL || undefined,
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

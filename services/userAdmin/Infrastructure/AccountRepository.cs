@@ -32,7 +32,7 @@ public sealed class AccountsRepository : IAccountsRepository
     public AccountsRepository(CosmosClient client, IOptions<CosmosOptions> opt)
     {
         var o = opt.Value;
-        var db = o.Databases["UserAdmin"];
+        var db = o.Databases["BlipsDatabase"];
         var c = db.Containers["Accounts"];
         _container = client.GetContainer(db.DatabaseId, c.ContainerId);
         // Assumes container PK path == "/accountId"

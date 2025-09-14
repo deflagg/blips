@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 
 // --- Axios client ---
-const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL || '').replace(/\/+$/, '')
+const API_BASE_URL = (import.meta.env?.VITE_API_BLIP_USER_ADMIN || '').replace(/\/+$/, '')
 
 const http = axios.create({
   baseURL: API_BASE_URL || undefined, // falls back to relative requests if unset

@@ -1,0 +1,1 @@
+docker run -d --name my-redis -p 6379:6379 -v redis_data:/data --restart always redis:latest

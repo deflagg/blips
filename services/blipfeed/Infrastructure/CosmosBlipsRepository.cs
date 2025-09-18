@@ -1,4 +1,5 @@
 using System.Net;
+using System.Linq;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using BlipFeed.Models;
@@ -9,7 +10,7 @@ public interface IBlipsRepository
 {
     Task<(Blip Item, string ETag, double RU)?> GetAsync(string id, string userId, CancellationToken ct);
     Task<(IReadOnlyList<Blip> Items, string? ContinuationToken, double RU)> ListAsync(
-        string userId, int pageSize, string? continuationToken, CancellationToken ct);
+        IReadOnlyCollection<string> userIds, int pageSize, string? continuationToken, CancellationToken ct);
 }
 
 public sealed class CosmosBlipsRepository : IBlipsRepository
@@ -39,15 +40,26 @@ public sealed class CosmosBlipsRepository : IBlipsRepository
     }
 
     public async Task<(IReadOnlyList<Blip>, string?, double)> ListAsync(
-        string userId, int pageSize, string? continuationToken, CancellationToken ct)
+        IReadOnlyCollection<string> userIds, int pageSize, string? continuationToken, CancellationToken ct)
     {
-        var q = new QueryDefinition("SELECT * FROM c WHERE c.userId = @uid ORDER BY c.createdAt DESC")
-            .WithParameter("@uid", userId);
+        if (userIds.Count == 0) return (Array.Empty<Blip>(), null, 0d);
 
-        var it = _container.GetItemQueryIterator<Blip>(
-            q,
-            continuationToken,
-            new QueryRequestOptions { PartitionKey = new PartitionKey(userId), MaxItemCount = pageSize });
+        var ids = userIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        if (ids.Length == 0) return (Array.Empty<Blip>(), null, 0d);
+
+        var q = new QueryDefinition("SELECT * FROM c WHERE ARRAY_CONTAINS(@uids, c.userId) ORDER BY c.createdAt DESC")
+            .WithParameter("@uids", ids);
+
+        var requestOptions = new QueryRequestOptions
+        {
+            MaxItemCount = pageSize
+        };
+
+        var it = _container.GetItemQueryIterator<Blip>(q, continuationToken, requestOptions);
 
         if (!it.HasMoreResults) return (Array.Empty<Blip>(), null, 0d);
 

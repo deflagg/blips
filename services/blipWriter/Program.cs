@@ -11,6 +11,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Azure.Identity;
 using Azure.ResourceManager.CosmosDB;
+using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
+
 
 
 
@@ -70,7 +73,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
                 Timeout = TimeSpan.FromSeconds(65)
             };
         };
-        
+
         return new CosmosClient(endpoint, opt.Key, clientOptions);
 
     }
@@ -78,6 +81,19 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
     //return new CosmosClient(endpoint, key, clientOptions);
     return new CosmosClient(endpoint, new DefaultAzureCredential(), clientOptions);
 });
+
+// ---------- Event Hubs (producer) ----------
+builder.Services.Configure<EventHubsOptions>(builder.Configuration.GetSection("EventHubs"));
+
+builder.Services.AddSingleton<EventHubProducerClient>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<EventHubsOptions>>().Value;
+    if (!opts.Enabled || string.IsNullOrWhiteSpace(opts.ConnectionString))
+        throw new InvalidOperationException("Event Hubs is disabled or missing ConnectionString.");
+
+    return new EventHubProducerClient(opts.ConnectionString!, opts.EventHubName);
+});
+
 
 // ---------- CORS ------------
 builder.Services.AddCors(options =>
@@ -134,6 +150,8 @@ var group = app.MapGroup("/blips").WithTags("Blips");
 group.MapPost("/", async Task<Results<Created<BlipDto>, ValidationProblem>> (
     CreateBlipRequest req,
     IBlipsRepository repo,
+    EventHubProducerClient producer,           // <-- add this
+    IOptions<EventHubsOptions> ehOpts,         // <-- optional, if you want access to opts
     HttpResponse res,
     CancellationToken ct) =>
 {
@@ -160,6 +178,35 @@ group.MapPost("/", async Task<Results<Created<BlipDto>, ValidationProblem>> (
     res.Headers.Append("x-ms-request-charge", ru.ToString("0.###", CultureInfo.InvariantCulture));
 
     var dto = saved.ToDto();
+
+    // Produce event to Event Hubs emulator
+    try
+    {
+        var payload = new
+        {
+            type = "blip.created",
+            id = dto.Id,
+            userId = dto.UserId,
+            text = dto.Text,
+            ts = DateTimeOffset.UtcNow
+        };
+
+        var eventData = new EventData(BinaryData.FromObjectAsJson(payload));
+        eventData.ContentType = "application/json";
+        eventData.Properties["schema"] = "blip.v1";
+        eventData.Properties["source"] = "blip-writer";
+
+        // Partition by user to keep order for a single user's feed
+        var sendOptions = new SendEventOptions { PartitionKey = dto.UserId };
+
+        await producer.SendAsync(new[] { eventData }, sendOptions, ct);
+    }
+    catch (Exception ex)
+    {
+        // Don't fail the request if the event can’t be published; log instead.
+        app.Logger.LogWarning(ex, "Failed to publish blip.created for user {UserId}", req.UserId);
+    }
+
     return TypedResults.Created($"/blips/{dto.Id}?userId={dto.UserId}", dto);
 })
 .Produces<BlipDto>(StatusCodes.Status201Created)
@@ -167,41 +214,6 @@ group.MapPost("/", async Task<Results<Created<BlipDto>, ValidationProblem>> (
 .WithName("CreateBlip");
 
 
-// PUT /blips/{id}?userId=...   (optimistic concurrency with If-Match)
-group.MapPut("/{id}", async Task<Results<Ok<BlipDto>, NotFound, StatusCodeHttpResult, BadRequest>> (
-    string id,
-    string userId,
-    UpdateBlipRequest req,
-    IBlipsRepository repo,
-    HttpRequest http,
-    HttpResponse res, // RU: added to set RU header
-    CancellationToken ct) =>
-{
-    var ifMatch = http.Headers.IfMatch.FirstOrDefault()?.Trim('"');
-    if (string.IsNullOrWhiteSpace(ifMatch))
-        return TypedResults.BadRequest();
-
-    var existing = await repo.GetAsync(id, userId, ct);
-    if (existing is null) return TypedResults.NotFound();
-
-    // Update the existing blip
-    var blip = existing.Value.Item;
-    blip.text = (req.Text ?? string.Empty).Trim();
-
-    // RU: capture RU from repository
-    var updated = await repo.UpdateAsync(blip, ifMatch!, ct);
-    if (updated is null)
-    {
-        // ETag mismatch -> 412 Precondition Failed
-        return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
-    }
-
-    // RU: add RU header
-    res.Headers.Append("x-ms-request-charge", updated.Value.RU.ToString("0.###", CultureInfo.InvariantCulture));
-
-    return TypedResults.Ok(updated.Value.Item.ToDto());
-})
-.WithName("UpdateBlip");
 
 
 app.Run();

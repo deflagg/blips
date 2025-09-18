@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "blipFeedFanout", "blipFeedFanout.csproj", "{20530FE5-B2BB-3E8B-A920-495928BF5853}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20530FE5-B2BB-3E8B-A920-495928BF5853}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20530FE5-B2BB-3E8B-A920-495928BF5853}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20530FE5-B2BB-3E8B-A920-495928BF5853}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20530FE5-B2BB-3E8B-A920-495928BF5853}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8F65186D-70B2-4899-9456-BBBADE3EAE87}
+	EndGlobalSection
+EndGlobal

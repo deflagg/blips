@@ -6,6 +6,8 @@ dotnet add package Azure.Identity
 dotnet add package Gremlin.Net
 dotnet add package Azure.ResourceManager
 dotnet add package Azure.ResourceManager.CosmosDB
+dotnet add package Azure.Messaging.EventHubs
+dotnet add package Microsoft.Extensions.Caching.StackExchangeRedis
 dotnet clean
 dotnet build
 

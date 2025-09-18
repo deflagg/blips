@@ -11,6 +11,15 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Azure.Identity;
 using Azure.ResourceManager.CosmosDB;
+using Gremlin.Net.Driver;
+using Gremlin.Net.Structure.IO.GraphSON;
+using Azure.Core;
+
+using System.Text.Json;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
+using System.Text.Json.Serialization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +85,63 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
     //return new CosmosClient(endpoint, key, clientOptions);
     return new CosmosClient(endpoint, new DefaultAzureCredential(), clientOptions);
 });
+
+// ---------- Gremlin (Person graph) ----------
+builder.Services.Configure<GremlinOptions>(builder.Configuration.GetSection("PersonGraphDB"));
+
+builder.Services.AddSingleton<GremlinClient>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<GremlinOptions>>().Value;
+    var username = $"/dbs/{options.Common.DatabaseId}/colls/{options.Common.GraphId}";
+
+    if (options.Mode == GremlinMode.Emulator)
+    {
+        var emulator = options.Emulator ?? throw new InvalidOperationException("Person graph emulator configuration missing.");
+        var server = new GremlinServer(
+            hostname: emulator.Host,
+            port: emulator.Port,
+            enableSsl: false,
+            username: username,
+            password: emulator.AuthKey);
+
+        return new GremlinClient(server, new GraphSON2MessageSerializer());
+    }
+    else
+    {
+        var cloud = options.Cloud ?? throw new InvalidOperationException("Person graph cloud configuration missing.");
+        var token = new DefaultAzureCredential().GetToken(new TokenRequestContext(new[] { "https://cosmos.azure.com/.default" })).Token;
+        var server = new GremlinServer(
+            hostname: $"{cloud.AccountName}.gremlin.cosmos.azure.com",
+            port: 443,
+            enableSsl: true,
+            username: username,
+            password: token);
+
+        return new GremlinClient(server, new GraphSON2MessageSerializer());
+    }
+});
+
+builder.Services.AddSingleton<IPersonRepository>(sp =>
+    new PersonRepository(sp.GetRequiredService<GremlinClient>()));
+
+// ---------- Redis Cache --------
+builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("BlipsCache"));
+
+// Add distributed cache using those options; fallback to memory cache if disabled/missing
+var cacheCfg = builder.Configuration.GetSection("BlipsCache").Get<RedisOptions>() ?? new();
+if (cacheCfg.Enabled && !string.IsNullOrWhiteSpace(cacheCfg.ConnectionString))
+{
+    builder.Services.AddStackExchangeRedisCache(o =>
+    {
+        o.Configuration = cacheCfg.ConnectionString;
+        o.InstanceName = cacheCfg.InstanceName;
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache(); // keeps the app running even if Redis is off
+}
+
 
 // ---------- CORS ------------
 builder.Services.AddCors(options =>
@@ -146,29 +212,84 @@ var group = app.MapGroup("/blips").WithTags("Blips");
 // .WithName("GetBlip");
 
 
-// GET /blips?userId=...&pageSize=20&continuationToken=...
+// GET /blips?userId=...&pageSize=20&continuation   Token=...
 group.MapGet("/", async (
     string userId,
     int pageSize,
     string? continuationToken,
     IBlipsRepository repo,
+    IPersonRepository personRepo,
+    IDistributedCache cache,
+    IOptions<RedisOptions> cacheOptions,
     CancellationToken ct) =>
 {
     pageSize = pageSize <= 0 ? 20 : Math.Min(pageSize, 100);
 
-    // RU: capture RU from repository
-    var (items, token, ru) = await repo.ListAsync(userId, pageSize, continuationToken, ct);
-
-    // RU: include ru in payload
-    return Results.Ok(new
+    var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
     {
-        items = items.Select(i => i.ToDto()),
-        continuationToken = token,
-        ru
-    });
-})
-.Produces(StatusCodes.Status200OK)
-.WithName("ListBlips");
+        PropertyNameCaseInsensitive = true
+    };
+
+    string cacheKey = $"tl:home:{userId}";
+
+    try
+    {
+        var cachedJson = await cache.GetStringAsync(cacheKey, ct);
+        if (!string.IsNullOrWhiteSpace(cachedJson))
+        {
+            var cached = JsonSerializer.Deserialize<ListBlipsResponse>(cachedJson, options);
+            if (cached?.Items is { } itemsFromCache)
+            {
+                return Results.Ok(new { items = itemsFromCache, continuationToken = cached.ContinuationToken, ru = 0.0 });
+            }
+        }
+    }
+    catch { /* fall back to DB */ }
+
+    var (following, followingRu) = await personRepo.ListFollowingIdsAsync(userId, ct);
+    if (following.Count == 0)
+    {
+        var emptyResponse = new ListBlipsResponse(Array.Empty<BlipDto>(), null, followingRu);
+
+        try
+        {
+            var ttl = TimeSpan.FromSeconds(Math.Max(5, cacheOptions.Value.FeedTtlSeconds));
+            await cache.SetStringAsync(
+                cacheKey,
+                JsonSerializer.Serialize(emptyResponse, options),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl },
+                ct);
+        }
+        catch { /* ignore */ }
+
+        return Results.Ok(new { items = emptyResponse.Items, continuationToken = emptyResponse.ContinuationToken, ru = emptyResponse.Ru });
+    }
+
+    var (items, token, ru) = await repo.ListAsync(following, pageSize, continuationToken, ct);
+    var dtoItems = items.Select(i => i.ToDto()).ToList();
+    var response = new ListBlipsResponse(dtoItems, token, ru + followingRu);
+
+    try
+    {
+        var ttl = TimeSpan.FromSeconds(Math.Max(5, cacheOptions.Value.FeedTtlSeconds));
+        await cache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(response, options),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl },
+            ct);
+    }
+    catch { /* ignore */ }
+
+    return Results.Ok(new { items = response.Items, continuationToken = response.ContinuationToken, ru = response.Ru });
+});
+
 
 // run
 app.Run();
+
+
+public sealed record ListBlipsResponse(
+    [property: JsonPropertyName("items")] IReadOnlyList<BlipDto> Items,
+    [property: JsonPropertyName("continuationToken")] string? ContinuationToken,
+    [property: JsonPropertyName("ru")] double Ru
+);

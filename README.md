@@ -18,6 +18,14 @@ Blips is a sample social feed platform built around event-driven .NET microservi
 3. Clients request feeds through `blipfeed`, which first reads from Redis when available and falls back to Cosmos queries combined with follower graph lookups.
 4. User and relationship management goes through `userAdmin`. The optional `userFollowersCdc` function watches the follower container change feed for additional processing hooks.
 
+### Networking Architecture
+- **Hub-spoke topology** - A shared hub VNet (`hubvnet-<project>`) provides central services, while workload traffic runs in a spoke VNet (`spoke1Vnet-<project>`), with bidirectional VNet peering enabling private routing between them.
+- **Hub VNet services** - Contains subnets for gateway, DNS forwarder, Azure Firewall, and API Management. Network security groups on the APIM subnet enforce inbound TLS-only access, and optional VPN or firewall resources can be enabled from the same template.
+- **Spoke VNet layout** - Hosts an AKS worker subnet (`default-subnet`), an Application Gateway subnet (`appgateway-subnet`), and an App Service integration subnet (`appsvc-integration`) used for private access to supporting web apps.
+- **Ingress path** - Application Gateway terminates TLS using certificates stored in Key Vault, then forwards traffic to AKS (via AGIC). API Management can front the gateway for policy enforcement, and Azure Firewall (when enabled) provides east-west and north-south inspection.
+- **Private DNS** - A `priv.<project>.com` private DNS zone plus the `privatelink.azurewebsites.net` zone link resolve internal services. Hub-to-spoke links ensure private endpoints and App Service private integration resolve correctly across the estate.
+- **Hybrid connectivity** (optional) - Templates include placeholders for VPN Gateway and DNS forwarder VM modules, allowing extension to on-premises networks when required.
+
 ## Dependencies
 ### Core runtimes & tooling
 - `.NET 9` across APIs, worker, and functions (`blipWriter`, `blipfeed`, `userAdmin`, `blipFeedFanout`, `userFollowersCdc`).
